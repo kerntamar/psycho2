@@ -1,4 +1,5 @@
 import { sourceInventory, formulas, englishOutline, topicPlan, aiPracticeBank, officialQuestions, sampleQuestion } from './data.js';
+import { officialContentIndex } from './officialData.js';
 
 const aiLabel = 'שאלה זו נוצרה על ידי AI ואינה שאלה רשמית ממבחני המרכז הארצי או Campus IL';
 const storeKey = 'psycho2-state-v1';
@@ -53,10 +54,11 @@ function renderReview() {
 function render() {
   const stats = dashboardStats();
   document.getElementById('app').innerHTML = `
-  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats"><span>${sourceInventory.length} מקורות PDF</span><span>${formulas.length} נוסחאות</span><span>${englishOutline[1].items.length} נושאי אנגלית</span><span>${stats.pct}% דיוק</span></div></div><nav><a href="#pdfs">קובצי PDF</a><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#review">טעויות</a><a href="#sources">מקורות</a></nav></header>
+  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats"><span>${officialContentIndex.pdfCount} קובצי PDF רשמיים</span><span>${formulas.length} נוסחאות</span><span>${englishOutline[1].items.length} נושאי אנגלית</span><span>${stats.pct}% דיוק</span></div></div><nav><a href="#pdfs">קובצי PDF</a><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#review">טעויות</a><a href="#sources">מקורות</a></nav></header>
   <main>
     <section class="grid"><article class="card"><h2>כלל מקור רשמי</h2><p>תוכן רשמי מוצג רק עם מקור PDF. שאלות AI מסומנות בנפרד.</p></article><article class="card"><h2>מצב האפליקציה</h2><p>כוללת ספריית PDF, דף נוסחאות, תרגול AI מסומן, חזרה על טעויות, סטטיסטיקה ותכנית לימוד.</p></article><article class="card"><h2>התקדמות</h2><p>${stats.total} ניסיונות · ${stats.correct} נכונות · ${stats.pct}% דיוק</p><button class="secondary mini" id="resetProgress">איפוס התקדמות</button></article></section>
     <section id="pdfs"><h2>ספריית PDF רשמית</h2>${renderPdfLibrary()}</section>
+    <section id="official-index"><h2>אינדקס תוכן מכל ה־PDFים</h2><div class="grid">${officialContentIndex.records.slice(0, 24).map((item) => `<article class="card"><span class="tag">${item.domain}</span><h3>${item.title}</h3><p>${item.extractedLines} שורות טקסט חולצו · ${item.extractedCharacters} תווים</p><small>${item.previewHeadings.slice(0, 3).join(' · ')}</small></article>`).join('')}</div></section>
     <section id="plan"><h2>תכנית לימוד לפי נושא</h2><div class="grid">${topicPlan.map((topic) => `<article class="card"><span class="tag">${topic.domain}</span><h3>${topic.title}</h3><ul>${topic.tasks.map((task) => `<li>${task}</li>`).join('')}</ul></article>`).join('')}</div></section>
     <section id="practice"><h2>מצב תרגול</h2>${renderQuestion(state.currentQuestion)}</section>
     <section id="formulas"><h2>דף נוסחאות</h2><input id="formulaSearch" placeholder="חיפוש נוסחה או נושא"><div id="formulaList" class="grid">${renderFormulas()}</div></section>

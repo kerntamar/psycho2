@@ -16,6 +16,7 @@ const docsApp = readFileSync('docs/src/app.js', 'utf8');
 const sourceManifest = JSON.parse(readFileSync('data/sources/campus-il-pdfs.json', 'utf8'));
 const pdfMetadata = JSON.parse(readFileSync('data/extracted/pdfs/metadata.json', 'utf8'));
 const extractedFormulas = JSON.parse(readFileSync('data/extracted/formulas/quant-summary-formulas.json', 'utf8'));
+const officialIndex = JSON.parse(readFileSync('data/official/content-index.json', 'utf8'));
 
 assert(html.includes('lang="he"'), 'index.html must declare Hebrew language');
 assert(html.includes('dir="rtl"'), 'index.html must declare RTL direction');
@@ -24,6 +25,7 @@ assert(docsHtml.includes('src/app.js'), 'docs/index.html must support branch-bas
 assert(docsApp.includes('שאלה זו נוצרה על ידי AI'), 'docs app mirror must include the AI disclaimer');
 assert(app.includes('שאלה זו נוצרה על ידי AI'), 'AI-generated questions must include a clear disclaimer');
 assert(app.includes('ספריית PDF רשמית'), 'app must expose the official PDF library');
+assert(app.includes('אינדקס תוכן מכל ה־PDFים'), 'app must expose the all-PDF content index');
 assert(app.includes('<iframe'), 'app must embed selected official PDFs for reading');
 assert(app.includes('חזרה על טעויות'), 'app must include review mode');
 assert(app.includes('localStorage'), 'app must persist user progress locally');
@@ -53,7 +55,8 @@ assert(bulkIngestWorkflow.includes('git push --force-with-lease origin'), 'bulk 
 assert(discoverScript.includes('all-campus-il-pdfs.json'), 'discover script must write the all-PDF manifest');
 assert(pagesWorkflow.includes('branches: [main]'), 'workflow must deploy pushes to main');
 assert(sourceManifest.every((source) => source.url.startsWith('https://courses.campus.gov.il/') && source.url.includes('.pdf')), 'manifest must contain only Campus IL PDFs');
-assert(pdfMetadata.every((source) => source.pageCount > 0 && source.extractionStatus === 'cataloged'), 'PDF metadata must include cataloged page counts');
+assert(pdfMetadata.length >= 100 && pdfMetadata.every((source) => source.sha256 && source.bytes > 0), 'PDF metadata must include fetched PDF hashes and byte sizes');
+assert(officialIndex.pdfCount >= 100 && officialIndex.extractedTextCount >= 100, 'official index must cover the bulk extracted PDFs');
 assert(extractedFormulas.every((formula) => formula.sourceId === 'quant-summary' && formula.reviewStatus), 'extracted formulas must remain tied to source and review state');
 
 console.log('כל הבדיקות עברו בהצלחה');
