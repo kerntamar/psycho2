@@ -90,6 +90,77 @@ export const officialQuestions = [
     explanation: 'כדי שצפיפות תישאר קבועה כאשר הנפח גדל, גם כמות החומר/מספר הדגים צריכה לגדול.',
     source: { title: 'פתרונות סימולציה קמפוס 1', url: sourceInventory[2].url, page: 12, lines: '164-180' }
   }
+
+  ,{
+    id: 'campus2-english-1', sourceType: 'official', domain: 'אנגלית', topic: 'Sentence Completion', difficulty: 'קל',
+    text: 'In Mexico, the eastern Pacific green turtle is valued not only for its meat but also for its medicinal properties. Which answer completes the meaning?',
+    choices: ['because of', 'except for', 'in addition to', 'but also for'], correctIndex: 3,
+    explanation: 'המשפט מציג מבנה של not only ... but also, ולכן ההשלמה המתאימה היא but also for.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 9, lines: '63-68' }
+  },
+  {
+    id: 'campus2-english-2', sourceType: 'official', domain: 'אנגלית', topic: 'Sentence Completion', difficulty: 'קל',
+    text: 'Scientists can only ___ how life first began. Which word best completes the sentence?',
+    choices: ['combine', 'speculate', 'remove', 'rotate'], correctIndex: 1,
+    explanation: 'המשמעות המתאימה היא “לשער”; מדענים יכולים רק לשער כיצד החיים החלו.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 9, lines: '69-74' }
+  },
+  {
+    id: 'campus2-english-3', sourceType: 'official', domain: 'אנגלית', topic: 'Vocabulary', difficulty: 'קל',
+    text: 'The CN Tower in Toronto is a landmark visible from far away. What is the meaning of “landmark” here?',
+    choices: ['external', 'inventory', 'material', 'a notable place/point'], correctIndex: 3,
+    explanation: 'בהקשר זה landmark פירושו נקודת ציון או מקום בולט.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 10, lines: '75-80' }
+  },
+  {
+    id: 'campus2-english-4', sourceType: 'official', domain: 'אנגלית', topic: 'Vocabulary', difficulty: 'קל',
+    text: 'In ancient Rome, a desultor was a circus performer who leaped from one galloping horse to another. What does “leaped” mean?',
+    choices: ['jumped', 'flame', 'schadenfreude', 'pose'], correctIndex: 0,
+    explanation: 'המילה leaped פירושה זינק או קפץ.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 10, lines: '81-86' }
+  },
+  {
+    id: 'campus2-english-5', sourceType: 'official', domain: 'אנגלית', topic: 'Vocabulary', difficulty: 'קל',
+    text: 'During World War I, Agatha Christie worked as a nurse and tended the sick and wounded. What does “tended” mean?',
+    choices: ['preferred', 'declared', 'admitted', 'cared for'], correctIndex: 3,
+    explanation: 'בהקשר של אחות וחולים, tended פירושו טיפלה או השגיחה.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 10, lines: '87-93' }
+  },
+  {
+    id: 'campus2-english-6', sourceType: 'official', domain: 'אנגלית', topic: 'Vocabulary', difficulty: 'קל',
+    text: 'The Angora goat is bred mainly for its long, silky wool. What does “bred” mean?',
+    choices: ['raised', 'swept', 'bound', 'shrunk'], correctIndex: 0,
+    explanation: 'bred היא צורת עבר/סביל של breed, כלומר גודל או הורבע.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 10, lines: '94-99' }
+  },
+  {
+    id: 'campus2-english-7', sourceType: 'official', domain: 'אנגלית', topic: 'Vocabulary', difficulty: 'בינוני',
+    text: 'The number of sightings of the great white shark — once considered elusive — has grown. What does “elusive” mean?',
+    choices: ['bitter', 'hard to find', 'profitable', 'inferior'], correctIndex: 1,
+    explanation: 'elusive פירושו חמקמק או קשה לאיתור.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 10, lines: '100-105' }
+  },
+  {
+    id: 'campus2-english-8', sourceType: 'official', domain: 'אנגלית', topic: 'Vocabulary', difficulty: 'בינוני',
+    text: 'Large deposits of diamonds were found in the Atlantic Ocean off southwest Africa. What does “deposits” mean?',
+    choices: ['hedges', 'conflicts', 'equations', 'layers/resources'], correctIndex: 3,
+    explanation: 'deposits בהקשר גאולוגי הם מרבצים או שכבות של חומר.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 11, lines: '106-111' }
+  },
+  {
+    id: 'campus2-english-11', sourceType: 'official', domain: 'אנגלית', topic: 'Restatements', difficulty: 'בינוני',
+    text: 'Road accidents involving young drivers increase in direct proportion to the number of passengers in the car. Which restatement is closest?',
+    choices: ['Accidents increase with driver age', 'Young drivers are safer alone', 'More passengers with a young driver means greater accident risk', 'Passengers are injured more often if the driver is young'], correctIndex: 2,
+    explanation: 'המשפט המקורי קושר בין מספר הנוסעים ברכב לבין הסיכוי לתאונה אצל נהגים צעירים.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 12, lines: '137-148' }
+  },
+  {
+    id: 'campus2-english-12', sourceType: 'official', domain: 'אנגלית', topic: 'Restatements', difficulty: 'בינוני',
+    text: 'Americans tend to overestimate the role of individualism in their country’s economic past. Which restatement is closest?',
+    choices: ['Individualism was central despite what Americans think', 'Americans valued it more in the past than today', 'Americans think it no longer exists', 'Americans think individualism had a bigger role than it really had'], correctIndex: 3,
+    explanation: 'overestimate פירושו להעריך יתר על המידה; לכן התשובה הנכונה משמרת את רעיון ההגזמה בהערכת התפקיד.',
+    source: { title: 'פתרונות סימולציה קמפוס 2', url: sourceInventory[3].url, page: 12, lines: '149-161' }
+  }
 ];
 
 export const sampleQuestion = officialQuestions[0];

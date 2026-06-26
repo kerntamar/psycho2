@@ -33,7 +33,8 @@ assert(formulas.length >= 12, 'formula sheet should contain meaningful study con
 assert(formulas.every((formula) => formula.sourceTitle && formula.page && formula.reviewStatus && formula.example), 'formulas need source metadata, review status, and examples');
 assert(englishOutline.length > 0 && englishOutline.every((section) => section.page && section.items.length), 'English outline must include page-backed items');
 assert(aiPracticeBank.length >= 3, 'AI practice bank should include labeled practice questions');
-assert(officialQuestions.length >= 7, 'app must include extracted official Campus IL questions');
+assert(officialQuestions.length >= 17, 'app must include extracted official Campus IL questions from multiple PDFs');
+assert(new Set(officialQuestions.map((q) => q.source.title)).has('פתרונות סימולציה קמפוס 2'), 'official questions must include content from Simulation 2 solutions');
 assert(officialQuestions.every((q) => q.sourceType === 'official' && q.source && q.source.url.includes('courses.campus.gov.il') && q.explanation), 'official questions need Campus IL source metadata and explanations');
 assert(!sampleQuestion.text.includes('שאלת הדגמה'), 'default practice question must no longer be a skeleton/demo prompt');
 assert(sampleQuestion.sourceType === 'official', 'default official question should be marked official');
