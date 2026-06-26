@@ -30,6 +30,8 @@ jobs:
         run: npm run fetch:pdfs -- data/sources/all-campus-il-pdfs.json
       - name: Extract PDF text
         run: npm run extract:pdfs
+      - name: Parse official content
+        run: npm run parse:official
       - name: Sync docs mirror
         run: npm run build:docs
       - name: Upload extraction artifacts
@@ -39,8 +41,9 @@ jobs:
           path: |
             data/sources/all-campus-il-pdfs.json
             data/extracted/**
+            data/official/**
             docs/data/sources/all-campus-il-pdfs.json
-            docs/data/extracted/**
+            docs/data/official/**
       - name: Publish extracted artifacts to branch
         run: |
           set -euo pipefail
@@ -48,7 +51,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B "$branch"
-          git add data/sources/all-campus-il-pdfs.json data/extracted docs/data/sources/all-campus-il-pdfs.json docs/data/extracted
+          git add data/sources/all-campus-il-pdfs.json data/extracted data/official docs/data/sources/all-campus-il-pdfs.json docs/data/official
           if git diff --cached --quiet; then
             echo "No extraction artifact changes to commit."
           else
