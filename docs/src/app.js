@@ -1,6 +1,6 @@
-import { sourceInventory, formulas, englishOutline, sampleQuestion } from './data.js';
+import { sourceInventory, formulas, englishOutline, topicPlan, aiPracticeBank, sampleQuestion } from './data.js';
 
-const state = { answered: false, aiQuestion: null };
+const state = { answered: false, aiQuestion: null, practiceIndex: 0 };
 const aiLabel = 'שאלה זו נוצרה על ידי AI ואינה שאלה רשמית ממבחני המרכז הארצי או Campus IL';
 
 function sourceBadge(type) {
@@ -8,18 +8,9 @@ function sourceBadge(type) {
 }
 
 function generateAiPracticeQuestion(base) {
-  return {
-    id: `ai-${Date.now()}`,
-    sourceType: 'ai',
-    domain: base.domain,
-    topic: base.topic,
-    difficulty: base.difficulty,
-    text: `שאלת AI לתרגול נוסף בנושא ${base.topic}: מחיר מוצר עלה ב־20% ואז ירד ב־20%. מה נכון לגבי המחיר הסופי?`,
-    choices: ['שווה למחיר המקורי', 'נמוך מהמחיר המקורי', 'גבוה מהמחיר המקורי', 'אי אפשר לדעת'],
-    correctIndex: 1,
-    explanation: 'לאחר עלייה וירידה באותו אחוז מתקבל 1.2 × 0.8 = 0.96, כלומר המחיר נמוך ב־4% מהמקור.',
-    relatedOfficialQuestionId: base.id
-  };
+  const next = aiPracticeBank[state.practiceIndex % aiPracticeBank.length];
+  state.practiceIndex += 1;
+  return { ...next, relatedOfficialQuestionId: base.id };
 }
 
 function renderSources() {
@@ -27,7 +18,7 @@ function renderSources() {
 }
 
 function renderFormulas() {
-  return formulas.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page} · ${item.reviewStatus}</small></article>`).join('');
+  return formulas.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><p class="example">דוגמה: ${item.example}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page} · ${item.reviewStatus}</small></article>`).join('');
 }
 
 function renderQuestion(question) {
@@ -38,9 +29,10 @@ function renderQuestion(question) {
 
 function render() {
   document.getElementById('app').innerHTML = `
-  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p></div><nav><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#english">אנגלית</a><a href="#sources">מקורות</a><a href="#dashboard">התקדמות</a></nav></header>
+  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats"><span>${sourceInventory.length} מקורות PDF</span><span>${formulas.length} נוסחאות</span><span>${englishOutline[1].items.length} נושאי אנגלית</span><span>${aiPracticeBank.length} שאלות AI מסומנות</span></div></div><nav><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#english">אנגלית</a><a href="#sources">מקורות</a><a href="#dashboard">התקדמות</a></nav></header>
   <main>
-    <section class="grid"><article class="card"><h2>כלל מקור רשמי</h2><p>שאלות, הסברים, מבנה מבחן ודף נוסחאות רשמיים יוצגו רק עם קישור PDF, שם מקור ועמוד.</p></article><article class="card"><h2>תרגול AI מסומן</h2><p>בכל שאלה ניתן ליצור שאלה דומה, אך היא תסומן במפורש כתוכן AI שאינו רשמי.</p></article><article class="card"><h2>עברית מלאה</h2><p>כל הממשק, הניווט, ההודעות והדוחות מוגדרים בעברית ובכיוון RTL.</p></article></section>
+    <section class="grid"><article class="card"><h2>כלל מקור רשמי</h2><p>שאלות, הסברים, מבנה מבחן ודף נוסחאות רשמיים יוצגו רק עם קישור PDF, שם מקור ועמוד.</p></article><article class="card"><h2>תוכן לימוד זמין</h2><p>האפליקציה כוללת עכשיו נוסחאות, דוגמאות, מפת נושאי אנגלית, תכנית לימוד ושאלות AI מסומנות לתרגול.</p></article><article class="card"><h2>עברית מלאה</h2><p>כל הממשק, הניווט, ההודעות והדוחות מוגדרים בעברית ובכיוון RTL.</p></article></section>
+    <section id="plan"><h2>תכנית לימוד לפי נושא</h2><div class="grid">${topicPlan.map((topic) => `<article class="card"><span class="tag">${topic.domain}</span><h3>${topic.title}</h3><ul>${topic.tasks.map((task) => `<li>${task}</li>`).join('')}</ul></article>`).join('')}</div></section>
     <section id="practice"><h2>מצב תרגול</h2><div id="questionHost">${renderQuestion(state.aiQuestion || sampleQuestion)}</div></section>
     <section id="formulas"><h2>דף נוסחאות</h2><input id="formulaSearch" placeholder="חיפוש נוסחה או נושא"><div id="formulaList" class="grid">${renderFormulas()}</div></section>
     <section id="english"><h2>מפת לימוד אנגלית</h2><div class="grid">${englishOutline.map((section) => `<article class="card"><span class="tag">עמוד ${section.page}</span><h3>${section.title}</h3><p>${section.items.join('، ')}</p></article>`).join('')}</div></section>
@@ -61,7 +53,7 @@ function bindEvents() {
   document.getElementById('formulaSearch').addEventListener('input', (event) => {
     const term = event.target.value.trim();
     const filtered = formulas.filter((item) => `${item.name} ${item.topic} ${item.formula}`.includes(term));
-    document.getElementById('formulaList').innerHTML = filtered.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page} · ${item.reviewStatus}</small></article>`).join('');
+    document.getElementById('formulaList').innerHTML = filtered.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><p class="example">דוגמה: ${item.example}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page} · ${item.reviewStatus}</small></article>`).join('');
   });
 }
 

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { sourceInventory, formulas, englishOutline, sampleQuestion } from '../src/data.js';
+import { sourceInventory, formulas, englishOutline, aiPracticeBank, sampleQuestion } from '../src/data.js';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -24,8 +24,10 @@ assert(app.includes('שאלה זו נוצרה על ידי AI'), 'AI-generated qu
 assert(sourceInventory.length >= 4, 'source inventory should include initial Campus IL PDF sources');
 assert(sourceInventory.every((source) => source.url.includes('courses.campus.gov.il') && source.type === 'PDF'), 'all source URLs must be Campus IL PDFs');
 assert(sourceInventory.every((source) => Number.isInteger(source.pageCount) && source.pageCount > 0), 'app sources need extracted page counts');
-assert(formulas.every((formula) => formula.sourceTitle && formula.page && formula.reviewStatus), 'formulas need source metadata and review status');
+assert(formulas.length >= 12, 'formula sheet should contain meaningful study content, not just placeholders');
+assert(formulas.every((formula) => formula.sourceTitle && formula.page && formula.reviewStatus && formula.example), 'formulas need source metadata, review status, and examples');
 assert(englishOutline.length > 0 && englishOutline.every((section) => section.page && section.items.length), 'English outline must include page-backed items');
+assert(aiPracticeBank.length >= 3, 'AI practice bank should include labeled practice questions');
 assert(sampleQuestion.sourceType === 'official', 'demo official question should be marked official');
 assert(existsSync('.github/workflows/deploy-pages.yml'), 'GitHub Pages deployment workflow must exist');
 assert(existsSync('.nojekyll'), 'GitHub Pages should bypass Jekyll processing');
