@@ -24,3 +24,17 @@ npm test
 - מצב תרגול דמו שמדגיש שאין להשתמש בשאלה רשמית לפני חילוץ PDF.
 - כפתור יצירת שאלה דומה בעזרת AI עם סימון ברור שהתוכן אינו רשמי.
 - מסמך ארכיטקטורה וסכמת נתונים עתידית.
+
+## פריסה ל־GitHub Pages
+
+הפרויקט כולל workflow בשם `Deploy static app to GitHub Pages` שמפרסם את האתר הסטטי בכל push לענף `main`.
+
+כדי למנוע 404 אחרי מיזוג ל־GitHub:
+
+1. היכנסו ל־GitHub → `Settings` → `Pages`.
+2. תחת `Build and deployment`, בחרו `Source: GitHub Actions`.
+3. ודאו שהענף הראשי נקרא `main`.
+4. דחפו שינוי ל־`main` או הפעילו ידנית את ה־workflow מתוך לשונית `Actions`.
+5. לאחר שה־workflow מסתיים, פתחו את כתובת ה־Pages שמופיעה בסיכום הריצה.
+
+אם עדיין מתקבל 404, בדקו שה־workflow הסתיים בהצלחה ושכתובת האתר כוללת את שם המאגר כאשר מדובר ב־Project Pages, לדוגמה: `https://USER.github.io/REPO/`.
