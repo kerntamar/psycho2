@@ -50,8 +50,8 @@ npm run extract:pdfs
 
 אם עדיין מתקבל 404:
 
-- ודאו שב־`Settings` → `Pages` מוגדר `Source: GitHub Actions`, ולא `Deploy from a branch`.
-- ודאו שה־workflow `Deploy static app to GitHub Pages` רץ בהצלחה אחרי המיזוג ל־`main`.
-- פתחו את ה־URL שמופיע בשדה `github-pages` בסוף ריצת ה־workflow.
+- האפשרות המומלצת: ודאו שב־`Settings` → `Pages` מוגדר `Source: GitHub Actions`, ולא `Deploy from a branch`, ואז ודאו שה־workflow `Deploy static app to GitHub Pages` רץ בהצלחה אחרי המיזוג ל־`main`.
+- אם אתם מעדיפים `Deploy from a branch`, בחרו `Branch: main` ו־`Folder: /docs`. המאגר כולל עכשיו עותק סטטי מלא גם תחת `docs/`, כדי שגם מצב פריסה זה יעבוד בלי טרמינל.
+- פתחו את ה־URL שמופיע בשדה `github-pages` בסוף ריצת ה־workflow או את כתובת Pages שמופיעה ב־`Settings` → `Pages`.
 - כאשר מדובר ב־Project Pages, הכתובת חייבת לכלול את שם המאגר, לדוגמה: `https://USER.github.io/REPO/`.
 - נוסף גם `404.html` שמריץ את אותה אפליקציה, כדי שקישורים פנימיים או URL שגוי בתוך האתר לא יציגו דף ריק.

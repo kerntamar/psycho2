@@ -9,6 +9,8 @@ const html = readFileSync('index.html', 'utf8');
 const notFoundHtml = readFileSync('404.html', 'utf8');
 const app = readFileSync('src/app.js', 'utf8');
 const pagesWorkflow = readFileSync('.github/workflows/deploy-pages.yml', 'utf8');
+const docsHtml = readFileSync('docs/index.html', 'utf8');
+const docsApp = readFileSync('docs/src/app.js', 'utf8');
 const sourceManifest = JSON.parse(readFileSync('data/sources/campus-il-pdfs.json', 'utf8'));
 const pdfMetadata = JSON.parse(readFileSync('data/extracted/pdfs/metadata.json', 'utf8'));
 const extractedFormulas = JSON.parse(readFileSync('data/extracted/formulas/quant-summary-formulas.json', 'utf8'));
@@ -16,6 +18,8 @@ const extractedFormulas = JSON.parse(readFileSync('data/extracted/formulas/quant
 assert(html.includes('lang="he"'), 'index.html must declare Hebrew language');
 assert(html.includes('dir="rtl"'), 'index.html must declare RTL direction');
 assert(notFoundHtml.includes('src/app.js'), '404.html must load the app for GitHub Pages fallback routes');
+assert(docsHtml.includes('src/app.js'), 'docs/index.html must support branch-based GitHub Pages from /docs');
+assert(docsApp.includes('שאלה זו נוצרה על ידי AI'), 'docs app mirror must include the AI disclaimer');
 assert(app.includes('שאלה זו נוצרה על ידי AI'), 'AI-generated questions must include a clear disclaimer');
 assert(sourceInventory.length >= 4, 'source inventory should include initial Campus IL PDF sources');
 assert(sourceInventory.every((source) => source.url.includes('courses.campus.gov.il') && source.type === 'PDF'), 'all source URLs must be Campus IL PDFs');
