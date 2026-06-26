@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-const manifestPath = 'data/sources/campus-il-pdfs.json';
+const manifestPath = process.argv[2] || 'data/sources/campus-il-pdfs.json';
 const outputDir = '.cache/pdfs';
 const metadataPath = 'data/extracted/pdfs/metadata.json';
 
@@ -25,7 +25,8 @@ async function download(url) {
 async function main() {
   await mkdir(outputDir, { recursive: true });
   await mkdir(path.dirname(metadataPath), { recursive: true });
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const manifestJson = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const manifest = Array.isArray(manifestJson) ? manifestJson : manifestJson.pdfs;
   const metadata = [];
 
   for (const source of manifest) {
