@@ -1,4 +1,4 @@
-import { sourceInventory, formulas, sampleQuestion } from './data.js';
+import { sourceInventory, formulas, englishOutline, sampleQuestion } from './data.js';
 
 const state = { answered: false, aiQuestion: null };
 const aiLabel = 'שאלה זו נוצרה על ידי AI ואינה שאלה רשמית ממבחני המרכז הארצי או Campus IL';
@@ -23,11 +23,11 @@ function generateAiPracticeQuestion(base) {
 }
 
 function renderSources() {
-  return sourceInventory.map((source) => `<tr><td>${source.title}</td><td>${source.type}</td><td>${source.includes.join('، ')}</td><td>${source.usage}</td><td><a href="${source.url}" target="_blank" rel="noreferrer">פתיחה</a></td></tr>`).join('');
+  return sourceInventory.map((source) => `<tr><td>${source.title}</td><td>${source.type}</td><td>${source.includes.join('، ')}</td><td>${source.usage}</td><td>${source.pageCount || 'לא ידוע'}</td><td><a href="${source.url}" target="_blank" rel="noreferrer">פתיחה</a></td></tr>`).join('');
 }
 
 function renderFormulas() {
-  return formulas.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page}</small></article>`).join('');
+  return formulas.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page} · ${item.reviewStatus}</small></article>`).join('');
 }
 
 function renderQuestion(question) {
@@ -38,13 +38,14 @@ function renderQuestion(question) {
 
 function render() {
   document.getElementById('app').innerHTML = `
-  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p></div><nav><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#sources">מקורות</a><a href="#dashboard">התקדמות</a></nav></header>
+  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p></div><nav><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#english">אנגלית</a><a href="#sources">מקורות</a><a href="#dashboard">התקדמות</a></nav></header>
   <main>
     <section class="grid"><article class="card"><h2>כלל מקור רשמי</h2><p>שאלות, הסברים, מבנה מבחן ודף נוסחאות רשמיים יוצגו רק עם קישור PDF, שם מקור ועמוד.</p></article><article class="card"><h2>תרגול AI מסומן</h2><p>בכל שאלה ניתן ליצור שאלה דומה, אך היא תסומן במפורש כתוכן AI שאינו רשמי.</p></article><article class="card"><h2>עברית מלאה</h2><p>כל הממשק, הניווט, ההודעות והדוחות מוגדרים בעברית ובכיוון RTL.</p></article></section>
     <section id="practice"><h2>מצב תרגול</h2><div id="questionHost">${renderQuestion(state.aiQuestion || sampleQuestion)}</div></section>
     <section id="formulas"><h2>דף נוסחאות</h2><input id="formulaSearch" placeholder="חיפוש נוסחה או נושא"><div id="formulaList" class="grid">${renderFormulas()}</div></section>
+    <section id="english"><h2>מפת לימוד אנגלית</h2><div class="grid">${englishOutline.map((section) => `<article class="card"><span class="tag">עמוד ${section.page}</span><h3>${section.title}</h3><p>${section.items.join('، ')}</p></article>`).join('')}</div></section>
     <section id="dashboard"><h2>לוח התקדמות</h2><div class="card"><p>כאן יוצגו דיוק לפי תחום, זמן ממוצע לשאלה, טעויות חוזרות והפרדה בין שאלות Campus IL לשאלות AI.</p><ul><li>חשיבה כמותית: ממתין לנתונים</li><li>חשיבה מילולית: ממתין לנתונים</li><li>אנגלית: ממתין לנתונים</li></ul></div></section>
-    <section id="sources"><h2>מלאי מקורות ראשוני</h2><table><thead><tr><th>כותרת</th><th>סוג</th><th>כולל</th><th>שימוש באפליקציה</th><th>קישור</th></tr></thead><tbody>${renderSources()}</tbody></table></section>
+    <section id="sources"><h2>מלאי מקורות ראשוני</h2><table><thead><tr><th>כותרת</th><th>סוג</th><th>כולל</th><th>שימוש באפליקציה</th><th>עמודים</th><th>קישור</th></tr></thead><tbody>${renderSources()}</tbody></table></section>
   </main>`;
   bindEvents();
 }
@@ -60,7 +61,7 @@ function bindEvents() {
   document.getElementById('formulaSearch').addEventListener('input', (event) => {
     const term = event.target.value.trim();
     const filtered = formulas.filter((item) => `${item.name} ${item.topic} ${item.formula}`.includes(term));
-    document.getElementById('formulaList').innerHTML = filtered.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page}</small></article>`).join('');
+    document.getElementById('formulaList').innerHTML = filtered.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page} · ${item.reviewStatus}</small></article>`).join('');
   });
 }
 

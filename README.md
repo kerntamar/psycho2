@@ -25,6 +25,17 @@ npm test
 - כפתור יצירת שאלה דומה בעזרת AI עם סימון ברור שהתוכן אינו רשמי.
 - מסמך ארכיטקטורה וסכמת נתונים עתידית.
 
+## ייבוא PDFים
+
+נוסף תהליך ייבוא ראשוני לקובצי PDF רשמיים של Campus IL:
+
+```bash
+npm run fetch:pdfs
+npm run extract:pdfs
+```
+
+הסקריפט הראשון מוריד רק כתובות מהדומיין `courses.campus.gov.il` ושומר קבצים ב־`.cache/pdfs`, שאינו נכנס ל־git. הסקריפט השני מחלץ טקסט אם מותקן הכלי `pdftotext`. פירוט מלא נמצא ב־`docs/pdf-ingestion.md`.
+
 ## פריסה ל־GitHub Pages
 
 הפרויקט כולל workflow בשם `Deploy static app to GitHub Pages` שמפרסם את האתר הסטטי בכל push לענף `main`.
