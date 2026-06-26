@@ -1,13 +1,15 @@
-import { sourceInventory, formulas, englishOutline, topicPlan, aiPracticeBank, sampleQuestion } from './data.js';
+import { sourceInventory, formulas, englishOutline, topicPlan, aiPracticeBank, officialQuestions, sampleQuestion } from './data.js';
 
 const aiLabel = 'שאלה זו נוצרה על ידי AI ואינה שאלה רשמית ממבחני המרכז הארצי או Campus IL';
 const storeKey = 'psycho2-state-v1';
 const state = JSON.parse(localStorage.getItem(storeKey) || '{}');
-Object.assign(state, { selectedPdfId: state.selectedPdfId || sourceInventory[0].id, practiceIndex: state.practiceIndex || 0, currentQuestion: state.currentQuestion || sampleQuestion, attempts: state.attempts || [], bookmarks: state.bookmarks || [] });
+Object.assign(state, { selectedPdfId: state.selectedPdfId || sourceInventory[0].id, practiceIndex: state.practiceIndex || 0, officialIndex: state.officialIndex || 0, currentQuestion: state.currentQuestion || sampleQuestion, attempts: state.attempts || [], bookmarks: state.bookmarks || [] });
+if (state.currentQuestion.text?.includes('שאלת הדגמה')) { state.currentQuestion = sampleQuestion; save(); }
 
 function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
 function sourceBadge(type) { return type === 'official' ? 'שאלה רשמית ממקור Campus IL' : aiLabel; }
 function nextAiQuestion() { const q = aiPracticeBank[state.practiceIndex % aiPracticeBank.length]; state.practiceIndex += 1; state.currentQuestion = q; save(); render(); }
+function nextOfficialQuestion() { const q = officialQuestions[state.officialIndex % officialQuestions.length]; state.officialIndex += 1; state.currentQuestion = q; save(); render(); }
 function resetProgress() { state.attempts = []; state.currentQuestion = sampleQuestion; save(); render(); }
 function toggleBookmark(id) { state.bookmarks = state.bookmarks.includes(id) ? state.bookmarks.filter((x) => x !== id) : [...state.bookmarks, id]; save(); render(); }
 
@@ -30,8 +32,8 @@ function renderPdfLibrary() {
 
 function renderQuestion(question) {
   const choices = question.choices.map((choice, index) => `<button class="choice" data-choice="${index}">${choice}</button>`).join('');
-  const src = question.sourceType === 'official' ? `<p class="source">מקור: ${question.source.title}, עמוד: ${question.source.page}</p>` : `<p class="source danger">${aiLabel}</p>`;
-  return `<section class="question card"><span class="tag ${question.sourceType === 'ai' ? 'ai' : ''}">${sourceBadge(question.sourceType)}</span><h3>${question.domain} · ${question.topic} · ${question.difficulty}</h3><p>${question.text}</p><div class="choices">${choices}</div><div id="feedback"></div>${src}<button id="aiGenerate" class="secondary">צור שאלה דומה בעזרת AI</button></section>`;
+  const src = question.sourceType === 'official' ? `<p class="source">מקור: ${question.source.title}, עמוד: ${question.source.page}, שורות: ${question.source.lines || 'לא צוין'}</p>` : `<p class="source danger">${aiLabel}</p>`;
+  return `<section class="question card"><span class="tag ${question.sourceType === 'ai' ? 'ai' : ''}">${sourceBadge(question.sourceType)}</span><h3>${question.domain} · ${question.topic} · ${question.difficulty}</h3><p>${question.text}</p><div class="choices">${choices}</div><div id="feedback"></div>${src}<button id="nextOfficial" class="secondary">שאלה רשמית הבאה</button> <button id="aiGenerate" class="secondary">צור שאלה דומה בעזרת AI</button></section>`;
 }
 
 function dashboardStats() {
@@ -77,6 +79,7 @@ function bindEvents() {
   }));
   document.querySelectorAll('[data-pdf]').forEach((button) => button.addEventListener('click', () => { state.selectedPdfId = button.dataset.pdf; save(); render(); }));
   document.querySelectorAll('[data-bookmark]').forEach((button) => button.addEventListener('click', () => toggleBookmark(button.dataset.bookmark)));
+  document.getElementById('nextOfficial').addEventListener('click', nextOfficialQuestion);
   document.getElementById('aiGenerate').addEventListener('click', nextAiQuestion);
   document.getElementById('resetProgress').addEventListener('click', resetProgress);
   document.getElementById('formulaSearch').addEventListener('input', (event) => {

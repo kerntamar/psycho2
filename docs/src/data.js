@@ -39,7 +39,62 @@ export const aiPracticeBank = [
   { id: 'ai-average-1', sourceType: 'ai', domain: 'חשיבה כמותית', topic: 'ממוצעים', difficulty: 'קל', text: 'שאלת AI: ממוצע של 4 מספרים הוא 9. מה סכומם?', choices: ['13', '18', '36', '45'], correctIndex: 2, explanation: 'סכום = ממוצע × מספר איברים = 9×4 = 36. שאלה זו נוצרה על ידי AI ואינה רשמית.' }
 ];
 
-export const sampleQuestion = {
+
+export const officialQuestions = [
+  {
+    id: 'campus1-verbal-1', sourceType: 'official', domain: 'חשיבה מילולית', topic: 'אנלוגיות', difficulty: 'קל',
+    text: 'ארון בגדים : בגד — איזו תשובה מבטאת יחס דומה?',
+    choices: ['תבנית : עוגה', 'מלון : חדר', 'גינה : פרח', 'חניון : מכונית'], correctIndex: 3,
+    explanation: 'ארון בגדים נועד לאחסון בגדים; באופן דומה, חניון נועד לאחסון מכוניות.',
+    source: { title: 'פתרונות סימולציה קמפוס 1', url: sourceInventory[2].url, page: 9, lines: '47-52' }
+  },
+  {
+    id: 'campus1-verbal-2', sourceType: 'official', domain: 'חשיבה מילולית', topic: 'אנלוגיות', difficulty: 'קל',
+    text: 'להתערטל : עירום — איזו תשובה מבטאת יחס דומה?',
+    choices: ['להתעמר : סובל', 'להתעבר : עוּבּר', 'להתגלות : עלום', 'להתבסם : שתוי'], correctIndex: 3,
+    explanation: 'להתערטל פירושו להפוך לעירום; להתבסם פירושו להפוך לשתוי.',
+    source: { title: 'פתרונות סימולציה קמפוס 1', url: sourceInventory[2].url, page: 9, lines: '53-58' }
+  },
+  {
+    id: 'campus1-verbal-3', sourceType: 'official', domain: 'חשיבה מילולית', topic: 'אנלוגיות', difficulty: 'קל',
+    text: 'נבוב : תוכן — איזו תשובה מבטאת יחס דומה?',
+    choices: ['זול : מחיר', 'חף מפשע : אשמה', 'שובה לב : סלידה', 'מרווה : צימאון'], correctIndex: 1,
+    explanation: 'נבוב הוא חסר תוכן; חף מפשע הוא חסר אשמה.',
+    source: { title: 'פתרונות סימולציה קמפוס 1', url: sourceInventory[2].url, page: 9, lines: '59-64' }
+  },
+  {
+    id: 'campus1-verbal-4', sourceType: 'official', domain: 'חשיבה מילולית', topic: 'אנלוגיות', difficulty: 'קל',
+    text: 'לקלף : קליפה — איזו תשובה מבטאת יחס דומה?',
+    choices: ['לאבק : אבק', 'להשריש : שורש', 'לסייד : סיד', 'למחוק : מחק'], correctIndex: 0,
+    explanation: 'לקלף הוא להסיר קליפה ממשהו; לאבק הוא להסיר אבק ממשהו.',
+    source: { title: 'פתרונות סימולציה קמפוס 1', url: sourceInventory[2].url, page: 9, lines: '65-70' }
+  },
+  {
+    id: 'campus1-verbal-5', sourceType: 'official', domain: 'חשיבה מילולית', topic: 'אנלוגיות', difficulty: 'בינוני',
+    text: 'נשמר : נוטר — איזו תשובה מבטאת יחס דומה?',
+    choices: ['נקרא : כותב', 'נתמך : סועד', 'נזקק : תורם', 'נטווה : אורג'], correctIndex: 1,
+    explanation: 'נשמר הוא מי שמישהו נוטר/שומר עליו; נתמך הוא מי שמישהו סועד/תומך בו.',
+    source: { title: 'פתרונות סימולציה קמפוס 1', url: sourceInventory[2].url, page: 10, lines: '71-76' }
+  },
+  {
+    id: 'campus1-verbal-6', sourceType: 'official', domain: 'חשיבה מילולית', topic: 'אנלוגיות', difficulty: 'בינוני',
+    text: 'תחינה : ליבו נכמר — איזו תשובה מבטאת יחס דומה?',
+    choices: ['פשרה : נאבק', 'תזכורת : נזכר', 'צידוק : הצטדק', 'תשלום : התמקח'], correctIndex: 1,
+    explanation: 'מטרת תחינה היא לגרום למישהו שייכמר ליבו; מטרת תזכורת היא לגרום למישהו להיזכר.',
+    source: { title: 'פתרונות סימולציה קמפוס 1', url: sourceInventory[2].url, page: 10, lines: '77-82' }
+  },
+  {
+    id: 'campus1-verbal-10', sourceType: 'official', domain: 'חשיבה מילולית', topic: 'הבנה והסקה', difficulty: 'בינוני',
+    text: 'באנלוגיית האקווריום: אם נפח האקווריום גדל אך הצפיפות נשארה זהה, איזו מסקנה מתאימה?',
+    choices: ['מספר הדגים עלה וגודל האקווריום נותר קבוע', 'האקווריום גדל ומספר הדגים נותר קבוע', 'האקווריום גדל וגם מספר הדגים גדל', 'מספר הדגים חדל להשפיע על הצפיפות'], correctIndex: 2,
+    explanation: 'כדי שצפיפות תישאר קבועה כאשר הנפח גדל, גם כמות החומר/מספר הדגים צריכה לגדול.',
+    source: { title: 'פתרונות סימולציה קמפוס 1', url: sourceInventory[2].url, page: 12, lines: '164-180' }
+  }
+];
+
+export const sampleQuestion = officialQuestions[0];
+
+export const legacySampleQuestion = {
   id: 'official-demo-001', sourceType: 'official', domain: 'חשיבה כמותית', topic: 'אחוזים', difficulty: 'בינוני',
   text: 'שאלת הדגמה למבנה המערכת בלבד. יש לייבא שאלות רשמיות מקובצי PDF של Campus IL לפני שימוש לימודי.',
   choices: ['תשובה 1', 'תשובה 2', 'תשובה 3', 'תשובה 4'], correctIndex: 1,
