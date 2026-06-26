@@ -1,0 +1,1 @@
+{"scripts":{"test":"node tests/run-tests.js","check":"node tests/run-tests.js"},"devDependencies":{},"dependencies":{},"engines":{"node":">=18"},"type":"module"}
