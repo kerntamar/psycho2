@@ -47,6 +47,9 @@ assert(pagesWorkflow.includes('cp index.html 404.html .nojekyll _site/'), 'workf
 assert(pagesWorkflow.includes('actions/deploy-pages@v4'), 'workflow must deploy with GitHub Pages action');
 assert(bulkIngestWorkflow.includes('npm run discover:pdfs'), 'bulk workflow must discover all PDFs from the downloads page');
 assert(bulkIngestWorkflow.includes('poppler-utils'), 'bulk workflow must install PDF text extraction tools');
+assert(bulkIngestWorkflow.includes('contents: write'), 'bulk workflow must be able to publish artifacts to a branch');
+assert(bulkIngestWorkflow.includes('campus-il-extraction-artifacts'), 'bulk workflow must default to a stable extraction artifact branch');
+assert(bulkIngestWorkflow.includes('git push --force-with-lease origin'), 'bulk workflow must push extraction artifacts without manual upload');
 assert(discoverScript.includes('all-campus-il-pdfs.json'), 'discover script must write the all-PDF manifest');
 assert(pagesWorkflow.includes('branches: [main]'), 'workflow must deploy pushes to main');
 assert(sourceManifest.every((source) => source.url.startsWith('https://courses.campus.gov.il/') && source.url.includes('.pdf')), 'manifest must contain only Campus IL PDFs');
