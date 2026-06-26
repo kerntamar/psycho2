@@ -48,4 +48,10 @@ npm run extract:pdfs
 4. דחפו שינוי ל־`main` או הפעילו ידנית את ה־workflow מתוך לשונית `Actions`.
 5. לאחר שה־workflow מסתיים, פתחו את כתובת ה־Pages שמופיעה בסיכום הריצה.
 
-אם עדיין מתקבל 404, בדקו שה־workflow הסתיים בהצלחה ושכתובת האתר כוללת את שם המאגר כאשר מדובר ב־Project Pages, לדוגמה: `https://USER.github.io/REPO/`.
+אם עדיין מתקבל 404:
+
+- ודאו שב־`Settings` → `Pages` מוגדר `Source: GitHub Actions`, ולא `Deploy from a branch`.
+- ודאו שה־workflow `Deploy static app to GitHub Pages` רץ בהצלחה אחרי המיזוג ל־`main`.
+- פתחו את ה־URL שמופיע בשדה `github-pages` בסוף ריצת ה־workflow.
+- כאשר מדובר ב־Project Pages, הכתובת חייבת לכלול את שם המאגר, לדוגמה: `https://USER.github.io/REPO/`.
+- נוסף גם `404.html` שמריץ את אותה אפליקציה, כדי שקישורים פנימיים או URL שגוי בתוך האתר לא יציגו דף ריק.
