@@ -1,9 +1,10 @@
 import { sourceInventory, formulas, englishOutline, topicPlan, aiPracticeBank, officialQuestions, sampleQuestion } from './data.js';
-import { officialContentIndex } from './officialData.js';
+import { officialContentIndex as bundledOfficialContentIndex, OFFICIAL_CATALOG_URL } from './officialData.js';
 
 const aiLabel = 'שאלה זו נוצרה על ידי AI ואינה שאלה רשמית ממבחני המרכז הארצי או Campus IL';
 const storeKey = 'psycho2-state-v1';
 const state = JSON.parse(localStorage.getItem(storeKey) || '{}');
+let officialContentIndex = bundledOfficialContentIndex;
 Object.assign(state, { selectedPdfId: state.selectedPdfId || sourceInventory[0].id, practiceIndex: state.practiceIndex || 0, officialIndex: state.officialIndex || 0, currentQuestion: state.currentQuestion || sampleQuestion, attempts: state.attempts || [], bookmarks: state.bookmarks || [] });
 if (state.currentQuestion.text?.includes('שאלת הדגמה')) { state.currentQuestion = sampleQuestion; save(); }
 
@@ -51,14 +52,29 @@ function renderReview() {
   return misses.map((m) => `<article class="card"><span class="tag ai">${m.sourceType === 'ai' ? 'AI' : 'Campus IL'}</span><h3>${m.topic}</h3><p>${m.text}</p><p class="bad feedback">התשובה שסומנה: ${m.selectedText}</p><p>${m.explanation}</p></article>`).join('');
 }
 
+function officialStatsMarkup() {
+  return `<span>${officialContentIndex.pdfCount} קובצי PDF רשמיים</span><span>${officialContentIndex.solutionPdfCount || 0} קובצי פתרונות</span><span>${officialContentIndex.parsedExplanationCount || 0} הסברים נותחו</span><span>${officialContentIndex.formulaCandidateCount || 0} מועמדי נוסחאות</span>`;
+}
+
+async function loadOfficialCatalog() {
+  try {
+    const response = await fetch(OFFICIAL_CATALOG_URL, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`catalog fetch failed: ${response.status}`);
+    officialContentIndex = await response.json();
+    render();
+  } catch (error) {
+    console.warn('Using bundled official catalog fallback from campus-il-extraction-artifacts summary', error);
+  }
+}
+
 function render() {
   const stats = dashboardStats();
   document.getElementById('app').innerHTML = `
-  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats"><span>${officialContentIndex.pdfCount} קובצי PDF רשמיים</span><span>${formulas.length} נוסחאות</span><span>${englishOutline[1].items.length} נושאי אנגלית</span><span>${stats.pct}% דיוק</span></div></div><nav><a href="#pdfs">קובצי PDF</a><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#review">טעויות</a><a href="#sources">מקורות</a></nav></header>
+  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats">${officialStatsMarkup()}<span>${stats.pct}% דיוק</span></div></div><nav><a href="#pdfs">קובצי PDF</a><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#review">טעויות</a><a href="#sources">מקורות</a></nav></header>
   <main>
     <section class="grid"><article class="card"><h2>כלל מקור רשמי</h2><p>תוכן רשמי מוצג רק עם מקור PDF. שאלות AI מסומנות בנפרד.</p></article><article class="card"><h2>מצב האפליקציה</h2><p>כוללת ספריית PDF, דף נוסחאות, תרגול AI מסומן, חזרה על טעויות, סטטיסטיקה ותכנית לימוד.</p></article><article class="card"><h2>התקדמות</h2><p>${stats.total} ניסיונות · ${stats.correct} נכונות · ${stats.pct}% דיוק</p><button class="secondary mini" id="resetProgress">איפוס התקדמות</button></article></section>
     <section id="pdfs"><h2>ספריית PDF רשמית</h2>${renderPdfLibrary()}</section>
-    <section id="official-index"><h2>אינדקס תוכן מכל ה־PDFים</h2><div class="grid">${officialContentIndex.records.slice(0, 24).map((item) => `<article class="card"><span class="tag">${item.domain}</span><h3>${item.title}</h3><p>${item.extractedLines} שורות טקסט חולצו · ${item.extractedCharacters} תווים</p><small>${item.previewHeadings.slice(0, 3).join(' · ')}</small></article>`).join('')}</div></section>
+    <section id="official-index"><h2>אינדקס תוכן מכל ה־PDFים</h2><div class="grid">${officialContentIndex.records.slice(0, 24).map((item) => `<article class="card"><span class="tag">${item.domain}</span><h3>${item.title}</h3><p>סטטוס סקירה: ${item.reviewStatus || 'לא צוין'} · מקור ענף: ${officialContentIndex.artifactBranch}</p></article>`).join('')}</div></section>
     <section id="plan"><h2>תכנית לימוד לפי נושא</h2><div class="grid">${topicPlan.map((topic) => `<article class="card"><span class="tag">${topic.domain}</span><h3>${topic.title}</h3><ul>${topic.tasks.map((task) => `<li>${task}</li>`).join('')}</ul></article>`).join('')}</div></section>
     <section id="practice"><h2>מצב תרגול</h2>${renderQuestion(state.currentQuestion)}</section>
     <section id="formulas"><h2>דף נוסחאות</h2><input id="formulaSearch" placeholder="חיפוש נוסחה או נושא"><div id="formulaList" class="grid">${renderFormulas()}</div></section>
@@ -93,3 +109,4 @@ function bindEvents() {
 }
 
 render();
+loadOfficialCatalog();
