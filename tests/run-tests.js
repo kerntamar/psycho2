@@ -21,6 +21,8 @@ assert(notFoundHtml.includes('src/app.js'), '404.html must load the app for GitH
 assert(docsHtml.includes('src/app.js'), 'docs/index.html must support branch-based GitHub Pages from /docs');
 assert(docsApp.includes('שאלה זו נוצרה על ידי AI'), 'docs app mirror must include the AI disclaimer');
 assert(app.includes('שאלה זו נוצרה על ידי AI'), 'AI-generated questions must include a clear disclaimer');
+assert(app.includes('ספריית PDF רשמית'), 'app must expose the official PDF library');
+assert(app.includes('<iframe'), 'app must embed selected official PDFs for reading');
 assert(sourceInventory.length >= 4, 'source inventory should include initial Campus IL PDF sources');
 assert(sourceInventory.every((source) => source.url.includes('courses.campus.gov.il') && source.type === 'PDF'), 'all source URLs must be Campus IL PDFs');
 assert(sourceInventory.every((source) => Number.isInteger(source.pageCount) && source.pageCount > 0), 'app sources need extracted page counts');

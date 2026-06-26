@@ -1,6 +1,6 @@
 import { sourceInventory, formulas, englishOutline, topicPlan, aiPracticeBank, sampleQuestion } from './data.js';
 
-const state = { answered: false, aiQuestion: null, practiceIndex: 0 };
+const state = { answered: false, aiQuestion: null, practiceIndex: 0, selectedPdfId: sourceInventory[0].id };
 const aiLabel = 'שאלה זו נוצרה על ידי AI ואינה שאלה רשמית ממבחני המרכז הארצי או Campus IL';
 
 function sourceBadge(type) {
@@ -21,6 +21,13 @@ function renderFormulas() {
   return formulas.map((item) => `<article class="card"><span class="tag">${item.topic}</span><h3>${item.name}</h3><p class="formula">${item.formula}</p><p>${item.explanation}</p><p class="example">דוגמה: ${item.example}</p><small>מקור: ${item.sourceTitle}, עמוד: ${item.page} · ${item.reviewStatus}</small></article>`).join('');
 }
 
+
+function renderPdfLibrary() {
+  const selected = sourceInventory.find((source) => source.id === state.selectedPdfId) || sourceInventory[0];
+  const buttons = sourceInventory.map((source) => `<button class="pdf-tab ${source.id === selected.id ? 'active' : ''}" data-pdf="${source.id}">${source.title}</button>`).join('');
+  return `<div class="card"><p>כאן ניתן לפתוח את קובצי ה־PDF הרשמיים של Campus IL ישירות מתוך האתר. הקבצים אינם מועתקים לאתר; הם נטענים מהמקור הרשמי.</p><div class="pdf-tabs">${buttons}</div><div class="pdf-frame-wrap"><iframe title="${selected.title}" src="${selected.url}"></iframe></div><p class="source">מקור: ${selected.title} · ${selected.pageCount} עמודים · <a href="${selected.url}" target="_blank" rel="noreferrer">פתיחה בלשונית חדשה</a></p></div>`;
+}
+
 function renderQuestion(question) {
   const choices = question.choices.map((choice, index) => `<button class="choice" data-choice="${index}">${choice}</button>`).join('');
   const officialSource = question.sourceType === 'official' ? `<p class="source">מקור: ${question.source.title}, עמוד: ${question.source.page}</p>` : `<p class="source danger">${aiLabel}</p>`;
@@ -29,9 +36,10 @@ function renderQuestion(question) {
 
 function render() {
   document.getElementById('app').innerHTML = `
-  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats"><span>${sourceInventory.length} מקורות PDF</span><span>${formulas.length} נוסחאות</span><span>${englishOutline[1].items.length} נושאי אנגלית</span><span>${aiPracticeBank.length} שאלות AI מסומנות</span></div></div><nav><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#english">אנגלית</a><a href="#sources">מקורות</a><a href="#dashboard">התקדמות</a></nav></header>
+  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats"><span>${sourceInventory.length} מקורות PDF</span><span>${formulas.length} נוסחאות</span><span>${englishOutline[1].items.length} נושאי אנגלית</span><span>${aiPracticeBank.length} שאלות AI מסומנות</span></div></div><nav><a href="#pdfs">קובצי PDF</a><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#english">אנגלית</a><a href="#sources">מקורות</a><a href="#dashboard">התקדמות</a></nav></header>
   <main>
     <section class="grid"><article class="card"><h2>כלל מקור רשמי</h2><p>שאלות, הסברים, מבנה מבחן ודף נוסחאות רשמיים יוצגו רק עם קישור PDF, שם מקור ועמוד.</p></article><article class="card"><h2>תוכן לימוד זמין</h2><p>האפליקציה כוללת עכשיו נוסחאות, דוגמאות, מפת נושאי אנגלית, תכנית לימוד ושאלות AI מסומנות לתרגול.</p></article><article class="card"><h2>עברית מלאה</h2><p>כל הממשק, הניווט, ההודעות והדוחות מוגדרים בעברית ובכיוון RTL.</p></article></section>
+    <section id="pdfs"><h2>ספריית PDF רשמית</h2>${renderPdfLibrary()}</section>
     <section id="plan"><h2>תכנית לימוד לפי נושא</h2><div class="grid">${topicPlan.map((topic) => `<article class="card"><span class="tag">${topic.domain}</span><h3>${topic.title}</h3><ul>${topic.tasks.map((task) => `<li>${task}</li>`).join('')}</ul></article>`).join('')}</div></section>
     <section id="practice"><h2>מצב תרגול</h2><div id="questionHost">${renderQuestion(state.aiQuestion || sampleQuestion)}</div></section>
     <section id="formulas"><h2>דף נוסחאות</h2><input id="formulaSearch" placeholder="חיפוש נוסחה או נושא"><div id="formulaList" class="grid">${renderFormulas()}</div></section>
@@ -49,6 +57,7 @@ function bindEvents() {
     const ok = selected === question.correctIndex;
     document.getElementById('feedback').innerHTML = `<div class="feedback ${ok ? 'ok' : 'bad'}">${ok ? 'נכון' : 'לא נכון'} · ${question.explanation}</div>`;
   }));
+  document.querySelectorAll('[data-pdf]').forEach((button) => button.addEventListener('click', () => { state.selectedPdfId = button.dataset.pdf; render(); }));
   document.getElementById('aiGenerate').addEventListener('click', () => { state.aiQuestion = generateAiPracticeQuestion(sampleQuestion); render(); });
   document.getElementById('formulaSearch').addEventListener('input', (event) => {
     const term = event.target.value.trim();
