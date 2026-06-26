@@ -1,0 +1,1 @@
+{"scripts":{"test":"node tests/run-tests.js","check":"node tests/run-tests.js","fetch:pdfs":"node scripts/fetch-pdfs.js","extract:pdfs":"node scripts/extract-pdf-text.js","discover:pdfs":"node scripts/discover-pdfs.js","build:docs":"node scripts/build-docs.js"},"devDependencies":{},"dependencies":{},"engines":{"node":">=18"},"type":"module"}
