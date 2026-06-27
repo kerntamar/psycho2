@@ -1,0 +1,60 @@
+name: Bulk ingest Campus IL PDFs
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_branch:
+        description: Branch name to publish extracted artifacts to
+        required: true
+        default: campus-il-extraction-artifacts
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install PDF tools
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Discover every PDF on the Campus IL downloads page
+        run: npm run discover:pdfs
+      - name: Fetch discovered PDFs
+        run: npm run fetch:pdfs -- data/sources/all-campus-il-pdfs.json
+      - name: Extract PDF text
+        run: npm run extract:pdfs
+      - name: Sync docs mirror
+        run: npm run build:docs
+      - name: Upload extraction artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: campus-il-pdf-extraction
+          path: |
+            data/sources/all-campus-il-pdfs.json
+            data/extracted/**
+            data/official/**
+            docs/data/sources/all-campus-il-pdfs.json
+            docs/data/official/**
+      - name: Publish extracted artifacts to branch
+        run: |
+          set -euo pipefail
+          branch="${{ github.event.inputs.publish_branch }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add data/sources/all-campus-il-pdfs.json data/extracted data/official docs/data/sources/all-campus-il-pdfs.json docs/data/official
+          if git diff --cached --quiet; then
+            echo "No extraction artifact changes to commit."
+          else
+            git commit -m "Add bulk Campus IL extraction artifacts"
+            # This branch contains generated artifact output, not human-edited source,
+            # so overwriting it is expected and avoids stale --force-with-lease failures.
+            git push --force origin HEAD:"$branch"
+          fi
