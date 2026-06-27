@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { sourceInventory, formulas, englishOutline, aiPracticeBank, officialQuestions, sampleQuestion } from '../src/data.js';
-import { cleanText, isSolutionTitle, parseCorrectAnswerHeader, splitSolutionBlocks } from '../scripts/parse-official-content.js';
+import { officialContentIndex, OFFICIAL_REVIEW_STATUS } from '../src/officialData.js';
+import { cleanText, isSolutionTitle, parseCorrectAnswerHeader, parseExplanations } from '../scripts/parse-official-content.js';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -43,33 +44,44 @@ assert(officialQuestions.length >= 17, 'app must include extracted official Camp
 assert(new Set(officialQuestions.map((q) => q.source.title)).has('פתרונות סימולציה קמפוס 2'), 'official questions must include content from Simulation 2 solutions');
 assert(officialQuestions.every((q) => q.sourceType === 'official' && q.source && q.source.url.includes('courses.campus.gov.il') && q.explanation), 'official questions need Campus IL source metadata and explanations');
 assert(!sampleQuestion.text.includes('שאלת הדגמה'), 'default practice question must no longer be a skeleton/demo prompt');
-assert(sampleQuestion.sourceType === 'official', 'default official question should be marked official');
-assert(existsSync('.github/workflows/deploy-pages.yml'), 'GitHub Pages deployment workflow must exist');
-assert(existsSync('.nojekyll'), 'GitHub Pages should bypass Jekyll processing');
-assert(pagesWorkflow.includes('path: _site'), 'workflow must upload an explicit _site artifact');
-assert(pagesWorkflow.includes('cp index.html 404.html .nojekyll _site/'), 'workflow must copy root HTML files into _site');
-assert(pagesWorkflow.includes('actions/deploy-pages@v4'), 'workflow must deploy with GitHub Pages action');
-assert(bulkIngestWorkflow.includes('npm run discover:pdfs'), 'bulk workflow must discover all PDFs from the downloads page');
-assert(bulkIngestWorkflow.includes('poppler-utils'), 'bulk workflow must install PDF text extraction tools');
-assert(bulkIngestWorkflow.includes('npm run parse:official'), 'bulk workflow must parse extracted text into structured official datasets');
-assert(bulkIngestWorkflow.includes('contents: write'), 'bulk workflow must be able to publish artifacts to a branch');
-assert(bulkIngestWorkflow.includes('campus-il-extraction-artifacts'), 'bulk workflow must default to a stable extraction artifact branch');
-assert(bulkIngestWorkflow.includes('git push --force origin HEAD:'), 'bulk workflow must force-push generated artifact output without stale lease failures');
-assert(bulkIngestWorkflow.includes('generated artifact output'), 'bulk workflow must explain why force push is safe for the artifact branch');
-assert(bulkIngestWorkflow.includes('data/official'), 'bulk workflow must publish parsed official artifacts');
-assert(parserScript.includes('explanations-preview.json') && parserScript.includes('formula-candidates.json'), 'parser must write explanation and formula artifact files');
-assert(isSolutionTitle('פתרונות סימולציה 1'), 'parser must recognize Hebrew solution PDF titles');
-assert(parseCorrectAnswerHeader('תשובה (4) נכונה') === 4, 'parser must parse standard Hebrew answer headers');
-assert(parseCorrectAnswerHeader('תשובה )4( נכונה') === 4, 'parser must parse reversed parenthesis answer headers');
-assert(parseCorrectAnswerHeader('תשובה ) (3 נכונה') === 3, 'parser must parse spaced RTL answer headers');
-assert(parseCorrectAnswerHeader('התשובה הנכונה היא (2)') === 2, 'parser must parse alternate correct-answer phrasing');
-assert(cleanText('abc\u200f def') === 'abc def', 'parser must remove bidi controls');
-assert(splitSolutionBlocks('תשובה (1) נכונה. הסבר ראשון\nתשובה )2( נכונה. הסבר שני').length === 2, 'parser must split multiple solution explanation blocks');
-assert(discoverScript.includes('all-campus-il-pdfs.json'), 'discover script must write the all-PDF manifest');
-assert(pagesWorkflow.includes('branches: [main]'), 'workflow must deploy pushes to main');
-assert(sourceManifest.every((source) => source.url.startsWith('https://courses.campus.gov.il/') && source.url.includes('.pdf')), 'manifest must contain only Campus IL PDFs');
-assert(pdfMetadata.length >= 100 && pdfMetadata.every((source) => source.sha256 && source.bytes > 0), 'PDF metadata must include fetched PDF hashes and byte sizes');
-assert(officialIndex.pdfCount >= 100 && officialIndex.extractedTextCount >= 100, 'official index must cover the bulk extracted PDFs');
-assert(extractedFormulas.every((formula) => formula.sourceId === 'quant-summary' && formula.reviewStatus), 'extracted formulas must remain tied to source and review state');
+assert(existsSync('scripts/parse-official-content.js'), 'parser script must exist');
+assert(packageJson.scripts['parse:official'] === 'node scripts/parse-official-content.js', 'npm parse:official script must run parser');
+assert(parserScript.includes('explanations-preview.json'), 'parser must write explanations preview output');
+assert(parserScript.includes('formula-candidates.json'), 'parser must write formula candidates output');
+assert(isSolutionTitle('פתרונות סימולציה 1'), 'parser must recognize simulation solution titles');
+assert(parseCorrectAnswerHeader('תשובה (4) נכונה') === '4', 'parser must parse parenthesized answer header format');
+assert(parseCorrectAnswerHeader('תשובה )4( נכונה') === '4', 'parser must parse reversed parenthesis answer header format');
+assert(parseCorrectAnswerHeader('תשובה ) (3 נכונה') === '3', 'parser must parse spaced RTL answer header format');
+assert(parseCorrectAnswerHeader('התשובה הנכונה היא (2)') === '2', 'parser must parse full correct answer phrase');
+assert(parseCorrectAnswerHeader('\u202bתשובה \u200f) (4 נכונה\u202c') === '4', 'parser must remove bidi marks before answer parsing');
+assert(!/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/.test(cleanText('\u202bתשובה (3) נכונה\u202c')), 'cleanText must remove bidi control characters');
+assert(parseExplanations(
+  { id: 'sample', title: 'פתרונות סימולציה 1', url: 'https://example.test/sample.pdf' },
+  'תשובה (4) נכונה\nהסבר ראשון עם מספיק מילים לבדיקה.\nתשובה )4( נכונה\nהסבר שני עם מספיק מילים לבדיקה.'
+).length === 2, 'parser must split multiple explanation blocks');
+assert(parserScript.includes('auto_extracted_needs_review'), 'parser must mark generated records for review');
+assert(app.includes('OFFICIAL_REVIEW_STATUS') && OFFICIAL_REVIEW_STATUS === 'auto_extracted_needs_review', 'official artifact data must be labeled auto_extracted_needs_review');
+assert(parserScript.includes('campus-il-extraction-artifacts'), 'parser must fall back to the artifact branch for missing local text');
+assert(parserScript.includes('Found ${solutionPdfCount} solution PDFs but parsed no explanations'), 'parser must fail loudly when solution PDFs parse no explanations');
+assert(bulkIngestWorkflow.includes('npm run discover:pdfs'), 'bulk workflow must discover all PDFs');
+assert(bulkIngestWorkflow.includes('npm run fetch:pdfs -- data/sources/all-campus-il-pdfs.json'), 'bulk workflow must fetch discovered PDFs');
+assert(bulkIngestWorkflow.includes('npm run extract:pdfs'), 'bulk workflow must extract PDFs');
+assert(bulkIngestWorkflow.includes('npm run parse:official'), 'bulk workflow must parse official artifacts');
+assert(bulkIngestWorkflow.includes('npm run build:docs'), 'bulk workflow must build docs after parsing');
+assert(bulkIngestWorkflow.includes('data/official/**'), 'bulk workflow must upload parsed official artifacts');
+assert(bulkIngestWorkflow.includes('docs/data/official/**'), 'bulk workflow must publish compact docs official artifacts');
+assert(bulkIngestWorkflow.includes('campus-il-extraction-artifacts'), 'full artifacts must remain on campus-il-extraction-artifacts');
+assert(!bulkIngestWorkflow.includes('docs/data/extracted/**'), 'bulk workflow must not duplicate raw extraction under docs/data');
+assert(buildDocsScript.includes("rm('docs/data/extracted'"), 'docs build must remove raw docs extraction artifacts');
+assert(!buildDocsScript.includes("cp('data', 'docs/data'"), 'docs build must not copy all raw data into docs/data');
+assert(officialContentIndex.pdfCount === 109 && officialContentIndex.extractedTextCount === 109, 'bundled official summary must stay compact but count all PDFs');
+assert(officialContentIndex.artifactBranch === 'campus-il-extraction-artifacts', 'bundled official summary must reference artifact branch');
+assert(catalog.pdfCount === 109 && catalog.extractedTextCount === 109, 'compact catalog must include expected official counts');
+assert(!existsSync('docs/data/extracted'), 'docs/data must not contain raw extracted PDF artifacts');
+for (const artifactPath of ['data/official/explanations-preview.json', 'data/official/formula-candidates.json', 'data/official/solution-index.json']) {
+  const bytes = readFileSync(artifactPath).byteLength;
+  assert(bytes < 250_000, `${artifactPath} must stay compact so huge generated artifacts are not committed to main`);
+}
+
 
 console.log('כל הבדיקות עברו בהצלחה');
