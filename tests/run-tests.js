@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { sourceInventory, formulas, englishOutline, aiPracticeBank, officialQuestions, sampleQuestion } from '../src/data.js';
 import { officialContentIndex, OFFICIAL_REVIEW_STATUS } from '../src/officialData.js';
+import { cleanText, parseCorrectAnswerHeader } from '../scripts/parse-official-content.js';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -39,6 +40,10 @@ assert(existsSync('scripts/parse-official-content.js'), 'parser script must exis
 assert(packageJson.scripts['parse:official'] === 'node scripts/parse-official-content.js', 'npm parse:official script must run parser');
 assert(parserScript.includes('explanations-preview.json'), 'parser must write explanations preview output');
 assert(parserScript.includes('formula-candidates.json'), 'parser must write formula candidates output');
+assert(parseCorrectAnswerHeader('תשובה ) (4 נכונה') === '4', 'parser must parse spaced RTL answer header format');
+assert(parseCorrectAnswerHeader('תשובה (3) נכונה') === '3', 'parser must parse parenthesized answer header format');
+assert(parseCorrectAnswerHeader('\u202bתשובה \u200f) (4 נכונה\u202c') === '4', 'parser must remove bidi marks before answer parsing');
+assert(!/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/.test(cleanText('\u202bתשובה (3) נכונה\u202c')), 'cleanText must remove bidi control characters');
 assert(parserScript.includes('auto_extracted_needs_review'), 'parser must mark generated records for review');
 assert(app.includes('OFFICIAL_REVIEW_STATUS') && OFFICIAL_REVIEW_STATUS === 'auto_extracted_needs_review', 'official artifact data must be labeled auto_extracted_needs_review');
 assert(parserScript.includes('campus-il-extraction-artifacts'), 'parser must fall back to the artifact branch for missing local text');
