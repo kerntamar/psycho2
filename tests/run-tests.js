@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { sourceInventory, formulas, englishOutline, aiPracticeBank, officialQuestions, sampleQuestion } from '../src/data.js';
+import { cleanText, isSolutionTitle, parseCorrectAnswerHeader, splitSolutionBlocks } from '../scripts/parse-official-content.js';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -11,6 +12,7 @@ const app = readFileSync('src/app.js', 'utf8');
 const pagesWorkflow = readFileSync('.github/workflows/deploy-pages.yml', 'utf8');
 const bulkIngestWorkflow = readFileSync('.github/workflows/bulk-ingest-campus-pdfs.yml', 'utf8');
 const discoverScript = readFileSync('scripts/discover-pdfs.js', 'utf8');
+const parserScript = readFileSync('scripts/parse-official-content.js', 'utf8');
 const docsHtml = readFileSync('docs/index.html', 'utf8');
 const docsApp = readFileSync('docs/src/app.js', 'utf8');
 const sourceManifest = JSON.parse(readFileSync('data/sources/campus-il-pdfs.json', 'utf8'));
@@ -49,11 +51,20 @@ assert(pagesWorkflow.includes('cp index.html 404.html .nojekyll _site/'), 'workf
 assert(pagesWorkflow.includes('actions/deploy-pages@v4'), 'workflow must deploy with GitHub Pages action');
 assert(bulkIngestWorkflow.includes('npm run discover:pdfs'), 'bulk workflow must discover all PDFs from the downloads page');
 assert(bulkIngestWorkflow.includes('poppler-utils'), 'bulk workflow must install PDF text extraction tools');
+assert(bulkIngestWorkflow.includes('npm run parse:official'), 'bulk workflow must parse extracted text into structured official datasets');
 assert(bulkIngestWorkflow.includes('contents: write'), 'bulk workflow must be able to publish artifacts to a branch');
 assert(bulkIngestWorkflow.includes('campus-il-extraction-artifacts'), 'bulk workflow must default to a stable extraction artifact branch');
 assert(bulkIngestWorkflow.includes('git push --force origin HEAD:'), 'bulk workflow must force-push generated artifact output without stale lease failures');
 assert(bulkIngestWorkflow.includes('generated artifact output'), 'bulk workflow must explain why force push is safe for the artifact branch');
 assert(bulkIngestWorkflow.includes('data/official'), 'bulk workflow must publish parsed official artifacts');
+assert(parserScript.includes('explanations-preview.json') && parserScript.includes('formula-candidates.json'), 'parser must write explanation and formula artifact files');
+assert(isSolutionTitle('פתרונות סימולציה 1'), 'parser must recognize Hebrew solution PDF titles');
+assert(parseCorrectAnswerHeader('תשובה (4) נכונה') === 4, 'parser must parse standard Hebrew answer headers');
+assert(parseCorrectAnswerHeader('תשובה )4( נכונה') === 4, 'parser must parse reversed parenthesis answer headers');
+assert(parseCorrectAnswerHeader('תשובה ) (3 נכונה') === 3, 'parser must parse spaced RTL answer headers');
+assert(parseCorrectAnswerHeader('התשובה הנכונה היא (2)') === 2, 'parser must parse alternate correct-answer phrasing');
+assert(cleanText('abc\u200f def') === 'abc def', 'parser must remove bidi controls');
+assert(splitSolutionBlocks('תשובה (1) נכונה. הסבר ראשון\nתשובה )2( נכונה. הסבר שני').length === 2, 'parser must split multiple solution explanation blocks');
 assert(discoverScript.includes('all-campus-il-pdfs.json'), 'discover script must write the all-PDF manifest');
 assert(pagesWorkflow.includes('branches: [main]'), 'workflow must deploy pushes to main');
 assert(sourceManifest.every((source) => source.url.startsWith('https://courses.campus.gov.il/') && source.url.includes('.pdf')), 'manifest must contain only Campus IL PDFs');

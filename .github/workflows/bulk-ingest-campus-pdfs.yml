@@ -30,6 +30,8 @@ jobs:
         run: npm run fetch:pdfs -- data/sources/all-campus-il-pdfs.json
       - name: Extract PDF text
         run: npm run extract:pdfs
+      - name: Parse structured official content
+        run: npm run parse:official
       - name: Sync docs mirror
         run: npm run build:docs
       - name: Upload extraction artifacts
