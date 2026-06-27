@@ -1,10 +1,8 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const artifactBranch = 'campus-il-extraction-artifacts';
-const rawBase = `https://raw.githubusercontent.com/kerntamar/psycho2/${artifactBranch}/data/extracted/pages`;
-const metadataPath = 'data/extracted/pdfs/metadata.json';
+const artifactBranch = process.env.ARTIFACT_BRANCH || 'campus-il-extraction-artifacts';
+const rawBase = `https://raw.githubusercontent.com/kerntamar/psycho2/${artifactBranch}`;
 const outDir = 'data/official';
 const reviewStatus = 'auto_extracted_needs_review';
 const domains = ['אנגלית', 'חשיבה כמותית', 'חשיבה מילולית', 'מטלת כתיבה'];
@@ -72,12 +70,8 @@ function isSolutionTitle(title) {
   return /פתרונות(?:\s+סימולציה|\s+מלאים)?|פתרון|תשובות|solutions?|answer\s*key/i.test(cleanText(title));
 }
 
-async function readText(pdf) {
-  const localPath = `data/extracted/pages/${pdf.id}.txt`;
-  if (existsSync(localPath)) return readFile(localPath, 'utf8');
-  const res = await fetch(`${rawBase}/${pdf.id}.txt`);
-  if (!res.ok) throw new Error(`Missing extracted text for ${pdf.id}: ${res.status} ${res.statusText}`);
-  return res.text();
+function answerHeaderRegex() {
+  return /(?:תשובה\D{0,30}([1-4])\D{0,30}נכונה|התשובה\s+הנכונה\s+היא\D{0,30}([1-4]))/g;
 }
 
 function parseExplanations(pdf, text) {
@@ -96,7 +90,15 @@ function parseExplanations(pdf, text) {
       explanation: body.slice(0, 1200),
       reviewStatus
     };
-  }).filter((item) => item.explanation.length > 20);
+  });
+}
+
+function extractSectionHeadings(text = '') {
+  const normalized = cleanText(text);
+  return [...normalized.matchAll(/פרק\s*[:\-]?\s*(\d+)\s*[:\-]?\s*([^\n]{2,80})/g)]
+    .map((match) => ({ sectionNumber: Number(match[1]), title: match[2].replace(/[.·]+/g, '').trim() }))
+    .filter((item, index, arr) => item.title && arr.findIndex((other) => other.sectionNumber === item.sectionNumber && other.title === item.title) === index)
+    .slice(0, 12);
 }
 
 function parseFormulaCandidates(pdf, text) {
@@ -139,12 +141,39 @@ async function main() {
   const solutionTitleSamples = [];
   const failures = [];
 
-  for (const pdf of metadata) {
-    const title = titleOf(pdf);
-    let text = '';
+  for (const source of metadata) {
     try {
-      text = await readText(pdf);
-      extractedTextCount += 1;
+      const text = await readTextForPdf(source.id);
+      if (isSolutionTitle(source.title)) {
+        if (diagnostics.sampleSnippets.length < 5) {
+          diagnostics.sampleSnippets.push({ id: source.id, title: source.title, snippet: sampleSnippet(text) });
+        }
+        const blocks = splitSolutionBlocks(text);
+        solutionIndex.push({
+          id: source.id,
+          title: source.title,
+          url: source.url,
+          sha256: source.sha256,
+          bytes: source.bytes,
+          domain: classifyDomain(source.title, text.slice(0, 3000)),
+          sectionHeadings: extractSectionHeadings(text),
+          explanationCount: blocks.length,
+          reviewStatus: 'auto_extracted_needs_review'
+        });
+        explanations.push(...blocks.map((block) => ({
+          id: `${source.id}-q-${String(block.questionNumber).padStart(3, '0')}`,
+          sourceId: source.id,
+          sourceTitle: source.title,
+          sourceUrl: source.url,
+          domain: classifyDomain(source.title, block.explanation),
+          questionNumber: block.questionNumber,
+          correctAnswer: block.correctAnswer,
+          explanation: block.explanation,
+          truncated: block.truncated,
+          reviewStatus: 'auto_extracted_needs_review'
+        })));
+      }
+      formulaCandidates.push(...extractFormulaCandidates(text, source));
     } catch (error) {
       console.warn(error.message);
     }
@@ -186,10 +215,12 @@ async function main() {
   }
 
   const catalog = {
+    generatedAt: new Date().toISOString(),
     artifactBranch,
     pdfCount: metadata.length,
-    extractedTextCount,
-    solutionPdfCount,
+    extractedTextCount: metadata.length - failures.length,
+    solutionPdfCount: solutionCandidates.length,
+    parsedSolutionPdfCount: solutionIndex.length,
     parsedExplanationCount: explanations.length,
     formulaCandidateCount: formulaCandidates.length,
     domainCounts,
@@ -202,10 +233,9 @@ async function main() {
     records: catalogRecords
   };
 
-  await mkdir(outDir, { recursive: true });
   await writeFile(`${outDir}/catalog.json`, `${JSON.stringify(catalog, null, 2)}\n`);
-  await writeFile(`${outDir}/solution-index.json`, `${JSON.stringify(explanations, null, 2)}\n`);
-  await writeFile(`${outDir}/explanations-preview.json`, `${JSON.stringify(explanations.slice(0, 50), null, 2)}\n`);
+  await writeFile(`${outDir}/solution-index.json`, `${JSON.stringify(solutionIndex, null, 2)}\n`);
+  await writeFile(`${outDir}/explanations-preview.json`, `${JSON.stringify(explanations, null, 2)}\n`);
   await writeFile(`${outDir}/formula-candidates.json`, `${JSON.stringify(formulaCandidates, null, 2)}\n`);
   if (solutionPdfCount > 0 && explanations.length === 0) {
     throw new Error(`Found ${solutionPdfCount} solution PDFs but parsed no explanations; parser pattern failed: ${catalog.diagnostics.failedParserPattern}`);

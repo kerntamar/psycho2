@@ -30,7 +30,7 @@ jobs:
         run: npm run fetch:pdfs -- data/sources/all-campus-il-pdfs.json
       - name: Extract PDF text
         run: npm run extract:pdfs
-      - name: Parse official content
+      - name: Parse structured official content
         run: npm run parse:official
       - name: Sync docs mirror
         run: npm run build:docs
@@ -56,5 +56,7 @@ jobs:
             echo "No extraction artifact changes to commit."
           else
             git commit -m "Add bulk Campus IL extraction artifacts"
-            git push --force-with-lease origin "$branch"
+            # This branch contains generated artifact output, not human-edited source,
+            # so overwriting it is expected and avoids stale --force-with-lease failures.
+            git push --force origin HEAD:"$branch"
           fi
