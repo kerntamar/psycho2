@@ -1,10 +1,11 @@
 import { sourceInventory, formulas, englishOutline, topicPlan, aiPracticeBank, officialQuestions, sampleQuestion } from './data.js';
 import { officialContentIndex } from './officialData.js';
+import { isArtifactSolutionSource, splitArtifactSolutions } from './artifactParser.js';
 
 const aiLabel = 'שאלה זו נוצרה על ידי AI ואינה שאלה רשמית ממבחני המרכז הארצי או Campus IL';
 const storeKey = 'psycho2-state-v1';
 const state = JSON.parse(localStorage.getItem(storeKey) || '{}');
-Object.assign(state, { selectedPdfId: state.selectedPdfId || sourceInventory[0].id, practiceIndex: state.practiceIndex || 0, officialIndex: state.officialIndex || 0, currentQuestion: state.currentQuestion || sampleQuestion, attempts: state.attempts || [], bookmarks: state.bookmarks || [] });
+Object.assign(state, { selectedPdfId: state.selectedPdfId || sourceInventory[0].id, practiceIndex: state.practiceIndex || 0, officialIndex: state.officialIndex || 0, currentQuestion: state.currentQuestion || sampleQuestion, attempts: state.attempts || [], bookmarks: state.bookmarks || [], artifactExplanations: state.artifactExplanations || [], artifactStatus: state.artifactStatus || 'idle' });
 if (state.currentQuestion.text?.includes('שאלת הדגמה')) { state.currentQuestion = sampleQuestion; save(); }
 
 function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
@@ -13,6 +14,38 @@ function nextAiQuestion() { const q = aiPracticeBank[state.practiceIndex % aiPra
 function nextOfficialQuestion() { const q = officialQuestions[state.officialIndex % officialQuestions.length]; state.officialIndex += 1; state.currentQuestion = q; save(); render(); }
 function resetProgress() { state.attempts = []; state.currentQuestion = sampleQuestion; save(); render(); }
 function toggleBookmark(id) { state.bookmarks = state.bookmarks.includes(id) ? state.bookmarks.filter((x) => x !== id) : [...state.bookmarks, id]; save(); render(); }
+
+const artifactBranch = 'campus-il-extraction-artifacts';
+const artifactBase = `https://raw.githubusercontent.com/kerntamar/psycho2/${artifactBranch}`;
+
+async function loadArtifactExplanations() {
+  if (state.artifactStatus === 'loaded' || state.artifactStatus === 'loading') return;
+  state.artifactStatus = 'loading';
+  save();
+  render();
+  try {
+    const metadata = await fetch(`${artifactBase}/data/extracted/pdfs/metadata.json`).then((response) => response.json());
+    const solutionSources = metadata.filter(isArtifactSolutionSource).slice(0, 6);
+    const batches = await Promise.all(solutionSources.map(async (source) => {
+      const text = await fetch(`${artifactBase}/data/extracted/pages/${source.id}.txt`).then((response) => response.text());
+      return splitArtifactSolutions(text, source).slice(0, 80);
+    }));
+    state.artifactExplanations = batches.flat().slice(0, 300);
+    state.artifactStatus = 'loaded';
+  } catch (error) {
+    state.artifactStatus = `error: ${error.message}`;
+  }
+  save();
+  render();
+}
+
+function renderArtifactExplanations() {
+  if (state.artifactStatus === 'idle') return '<div class="card"><p>אפשר להשתמש בחילוץ הקיים שכבר פורסם לענף artifacts, בלי להריץ שוב Bulk ingest.</p><button id="loadArtifacts">טען הסברים מהחילוץ הקיים</button></div>';
+  if (state.artifactStatus === 'loading') return '<div class="card"><p>טוען הסברים רשמיים מהחילוץ הקיים...</p></div>';
+  if (state.artifactStatus.startsWith('error')) return `<div class="card"><p class="bad">טעינת ההסברים נכשלה: ${state.artifactStatus}</p><button id="loadArtifacts">נסה שוב</button></div>`;
+  const cards = state.artifactExplanations.slice(0, 24).map((item) => `<article class="card"><span class="tag">${item.reviewStatus}</span><h3>${item.sourceTitle} · שאלה ${item.questionNumber}</h3><p>תשובה נכונה: ${item.correctAnswer}</p><p>${item.explanation}</p><small>מקור: ${item.sourceUrl}</small></article>`).join('');
+  return `<div class="card"><p>${state.artifactExplanations.length} הסברים נטענו ישירות מענף ${artifactBranch}, בלי להריץ workflow נוסף.</p></div><div class="grid">${cards}</div>`;
+}
 
 function renderSources() {
   return sourceInventory.map((source) => `<tr><td>${source.title}</td><td>${source.type}</td><td>${source.includes.join('، ')}</td><td>${source.usage}</td><td>${source.pageCount}</td><td><a href="${source.url}" target="_blank" rel="noreferrer">פתיחה</a></td></tr>`).join('');
@@ -54,13 +87,14 @@ function renderReview() {
 function render() {
   const stats = dashboardStats();
   document.getElementById('app').innerHTML = `
-  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats"><span>${officialContentIndex.pdfCount} קובצי PDF רשמיים</span><span>${formulas.length} נוסחאות</span><span>${englishOutline[1].items.length} נושאי אנגלית</span><span>${stats.pct}% דיוק</span></div></div><nav><a href="#pdfs">קובצי PDF</a><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#formulas">דף נוסחאות</a><a href="#review">טעויות</a><a href="#sources">מקורות</a></nav></header>
+  <header class="hero"><div><h1>פסיכומטרי קמפוס</h1><p>אפליקציית הכנה בעברית RTL המבוססת על קובצי PDF של Campus IL, עם הפרדה מלאה בין תוכן מקור רשמי לבין תרגול שנוצר על ידי AI.</p><div class="stats"><span>${officialContentIndex.pdfCount} קובצי PDF רשמיים</span><span>${formulas.length} נוסחאות</span><span>${englishOutline[1].items.length} נושאי אנגלית</span><span>${stats.pct}% דיוק</span></div></div><nav><a href="#pdfs">קובצי PDF</a><a href="#plan">תכנית לימוד</a><a href="#practice">תרגול</a><a href="#artifact-explanations">הסברים רשמיים</a><a href="#formulas">דף נוסחאות</a><a href="#review">טעויות</a><a href="#sources">מקורות</a></nav></header>
   <main>
     <section class="grid"><article class="card"><h2>כלל מקור רשמי</h2><p>תוכן רשמי מוצג רק עם מקור PDF. שאלות AI מסומנות בנפרד.</p></article><article class="card"><h2>מצב האפליקציה</h2><p>כוללת ספריית PDF, דף נוסחאות, תרגול AI מסומן, חזרה על טעויות, סטטיסטיקה ותכנית לימוד.</p></article><article class="card"><h2>התקדמות</h2><p>${stats.total} ניסיונות · ${stats.correct} נכונות · ${stats.pct}% דיוק</p><button class="secondary mini" id="resetProgress">איפוס התקדמות</button></article></section>
     <section id="pdfs"><h2>ספריית PDF רשמית</h2>${renderPdfLibrary()}</section>
     <section id="official-index"><h2>אינדקס תוכן מכל ה־PDFים</h2><div class="grid">${officialContentIndex.records.slice(0, 24).map((item) => `<article class="card"><span class="tag">${item.domain}</span><h3>${item.title}</h3><p>${item.extractedLines} שורות טקסט חולצו · ${item.extractedCharacters} תווים</p><small>${item.previewHeadings.slice(0, 3).join(' · ')}</small></article>`).join('')}</div></section>
     <section id="plan"><h2>תכנית לימוד לפי נושא</h2><div class="grid">${topicPlan.map((topic) => `<article class="card"><span class="tag">${topic.domain}</span><h3>${topic.title}</h3><ul>${topic.tasks.map((task) => `<li>${task}</li>`).join('')}</ul></article>`).join('')}</div></section>
     <section id="practice"><h2>מצב תרגול</h2>${renderQuestion(state.currentQuestion)}</section>
+    <section id="artifact-explanations"><h2>הסברים רשמיים מהחילוץ הקיים</h2>${renderArtifactExplanations()}</section>
     <section id="formulas"><h2>דף נוסחאות</h2><input id="formulaSearch" placeholder="חיפוש נוסחה או נושא"><div id="formulaList" class="grid">${renderFormulas()}</div></section>
     <section id="english"><h2>מפת לימוד אנגלית</h2><div class="grid">${englishOutline.map((section) => `<article class="card"><span class="tag">עמוד ${section.page}</span><h3>${section.title}</h3><p>${section.items.join('، ')}</p></article>`).join('')}</div></section>
     <section id="review"><h2>חזרה על טעויות</h2>${renderReview()}</section>
@@ -84,6 +118,7 @@ function bindEvents() {
   document.getElementById('nextOfficial').addEventListener('click', nextOfficialQuestion);
   document.getElementById('aiGenerate').addEventListener('click', nextAiQuestion);
   document.getElementById('resetProgress').addEventListener('click', resetProgress);
+  document.getElementById('loadArtifacts')?.addEventListener('click', () => { state.artifactStatus = 'idle'; loadArtifactExplanations(); });
   document.getElementById('formulaSearch').addEventListener('input', (event) => {
     const term = event.target.value.trim();
     const filtered = formulas.filter((item) => `${item.name} ${item.topic} ${item.formula} ${item.explanation}`.includes(term));

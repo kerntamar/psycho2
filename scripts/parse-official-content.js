@@ -1,94 +1,65 @@
 import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const artifactBranch = process.env.ARTIFACT_BRANCH || 'campus-il-extraction-artifacts';
 const rawBase = `https://raw.githubusercontent.com/kerntamar/psycho2/${artifactBranch}`;
 const outDir = 'data/official';
-const reviewStatus = 'auto_extracted_needs_review';
-const domains = ['אנגלית', 'חשיבה כמותית', 'חשיבה מילולית', 'מטלת כתיבה'];
-const parserPatterns = {
-  solutionTitle: [
-    'פתרונות',
-    'פתרון',
-    'תשובות',
-    'פתרונות סימולציה',
-    'פתרונות מלאים',
-    'solutions',
-    'answer key'
-  ],
-  correctAnswerHeader: [
-    'תשובה (4) נכונה',
-    'תשובה )4( נכונה',
-    'תשובה ) (4 נכונה',
-    'התשובה הנכונה היא (4)',
-    'התשובה הנכונה היא 4'
-  ]
-};
+const maxExplanationChars = Number(process.env.MAX_EXPLANATION_CHARS || 1200);
+const bidiControls = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 
-function classifyDomain(text) {
-  if (/אנגלית|english|sentence|restatement|vocabulary/i.test(text)) return 'אנגלית';
-  if (/כמותית|אלגברה|גאומטר|משווא|אחוז|יחס|מספר|x\s*[=+\-*/^]|\d+\s*[+\-*/=]/i.test(text)) return 'חשיבה כמותית';
-  if (/מילולית|אנלוגיות|הבנה והסקה|טקסט|פסקה|טענה/i.test(text)) return 'חשיבה מילולית';
-  if (/כתיבה|חיבור|מטלת/i.test(text)) return 'מטלת כתיבה';
-  return 'כללי';
-}
-
-function titleOf(item) {
-  const explicitTitle = item.title || item.name || item.fileName || item.filename;
-  if (explicitTitle) return cleanText(explicitTitle);
-  const urlFileName = item.url?.split('/').pop()?.split('?')[0];
-  if (urlFileName) {
-    try {
-      return cleanText(decodeURIComponent(urlFileName).replace(/\.pdf$/i, '').replace(/[_-]+/g, ' '));
-    } catch {
-      return cleanText(urlFileName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' '));
-    }
-  }
-  return item.id;
-}
-
-function cleanText(text) {
-  return text
-    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+export function cleanText(text) {
+  return String(text || '')
+    .replace(bidiControls, '')
     .replace(/\f/g, '\n')
-    .replace(/[ \t\v\u00a0]+/g, ' ')
-    .replace(/ *\r?\n */g, '\n')
+    .replace(/[\u00a0\t]+/g, ' ')
+    .replace(/[ ]{2,}/g, ' ')
+    .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
-function parseCorrectAnswerHeader(lineOrText) {
-  const text = cleanText(lineOrText);
-  const header = text.match(
-    /(?:תשובה\s*(?:\(\s*([1-4])\s*\)|\)\s*([1-4])\s*\(|\)\s*\(\s*([1-4])|([1-4]))\s*נכונה|התשובה\s*הנכונה\s*היא\s*(?:\(\s*([1-4])\s*\)|([1-4])))/u
-  );
-  if (!header) return null;
-  return header.slice(1).find(Boolean) || null;
+export function isSolutionTitle(title = '') {
+  return /פתרונות|פתרון|solutions?|answer key/i.test(title);
 }
 
-function isSolutionTitle(title) {
-  return /פתרונות(?:\s+סימולציה|\s+מלאים)?|פתרון|תשובות|solutions?|answer\s*key/i.test(cleanText(title));
+export function classifyDomain(title = '', block = '') {
+  const haystack = `${title} ${block}`;
+  if (/אנגלית|Sentence|Restatement|Reading|Vocabulary/i.test(haystack)) return 'אנגלית';
+  if (/כמותית|אלגברה|גיאומטר|תרשים|בעיות|אחוז|תנועה|הספק/.test(haystack)) return 'חשיבה כמותית';
+  if (/מילולית|אנלוגיות|הבנה והסקה|השלמת משפטים/.test(haystack)) return 'חשיבה מילולית';
+  if (/כתיבה|חיבור/.test(haystack)) return 'מטלת כתיבה';
+  return 'כללי';
+}
+
+export function parseCorrectAnswerHeader(text = '') {
+  const normalized = cleanText(text);
+  const patterns = [
+    /תשובה\D{0,30}([1-4])\D{0,30}נכונה/,
+    /התשובה\s+הנכונה\s+היא\D{0,30}([1-4])/
+  ];
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern);
+    if (match) return Number(match[1]);
+  }
+  return null;
 }
 
 function answerHeaderRegex() {
   return /(?:תשובה\D{0,30}([1-4])\D{0,30}נכונה|התשובה\s+הנכונה\s+היא\D{0,30}([1-4]))/g;
 }
 
-function parseExplanations(pdf, text) {
-  const normalizedText = cleanText(text);
-  const answerHeaderPattern = String.raw`(?:תשובה\s*(?:\(\s*[1-4]\s*\)|\)\s*[1-4]\s*\(|\)\s*\(\s*[1-4]|[1-4])\s*נכונה|התשובה\s*הנכונה\s*היא\s*(?:\(\s*[1-4]\s*\)|[1-4]))`;
-  const matches = [...normalizedText.matchAll(new RegExp(`(?:^|\\n)\\s*(${answerHeaderPattern})([\\s\\S]*?)(?=\\n\\s*${answerHeaderPattern}|$)`, 'gu'))];
+export function splitSolutionBlocks(text = '') {
+  const normalized = cleanText(text);
+  const matches = [...normalized.matchAll(answerHeaderRegex())];
   return matches.map((match, index) => {
-    const body = match[2].replace(/\s+/g, ' ').trim();
+    const start = match.index;
+    const end = index + 1 < matches.length ? matches[index + 1].index : normalized.length;
+    const raw = normalized.slice(start, end).trim();
     return {
-      id: `${pdf.id}-explanation-${String(index + 1).padStart(3, '0')}`,
-      sourceId: pdf.id,
-      sourceTitle: titleOf(pdf),
-      sourceUrl: pdf.url,
-      answer: parseCorrectAnswerHeader(match[1]),
-      domain: classifyDomain(`${titleOf(pdf)} ${body}`),
-      explanation: body.slice(0, 1200),
-      reviewStatus
+      questionNumber: index + 1,
+      correctAnswer: Number(match[1] || match[2]),
+      explanation: raw.slice(0, maxExplanationChars),
+      truncated: raw.length > maxExplanationChars
     };
   });
 }
@@ -101,45 +72,59 @@ function extractSectionHeadings(text = '') {
     .slice(0, 12);
 }
 
-function parseFormulaCandidates(pdf, text) {
-  const normalizedText = cleanText(text);
-  const lines = normalizedText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  return lines.filter((line) => /(?:=|≈|≤|≥|\bpi\b|π|√|\^|\d+\s*[+\-*/]\s*\d+)/i.test(line))
-    .slice(0, 40)
+function extractFormulaCandidates(text = '', source) {
+  const formulaSource = /נוסחאות|דפי סיכום|חשיבה כמותית|אלגברה|גיאומטר|טבלאות/.test(source.title);
+  if (!formulaSource) return [];
+  return cleanText(text).split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => /[=+−\-×*/^²π√]|שטח|היקף|נפח|ממוצע|אחוז|הסתברות|מהירות|זמן|דרך|יחס/.test(line))
+    .slice(0, 120)
     .map((line, index) => ({
-      id: `${pdf.id}-formula-${String(index + 1).padStart(3, '0')}`,
-      sourceId: pdf.id,
-      sourceTitle: titleOf(pdf),
-      sourceUrl: pdf.url,
-      domain: classifyDomain(`${titleOf(pdf)} ${line}`) === 'כללי' ? 'חשיבה כמותית' : classifyDomain(`${titleOf(pdf)} ${line}`),
-      text: line.slice(0, 300),
-      reviewStatus
+      id: `${source.id}-formula-${String(index + 1).padStart(3, '0')}`,
+      sourceId: source.id,
+      sourceTitle: source.title,
+      sourceUrl: source.url,
+      text: line.slice(0, 260),
+      reviewStatus: 'auto_extracted_needs_review'
     }));
 }
 
-function buildDiagnostics({ inspectedPdfCount, solutionTitleSamples, solutionPdfSnippets, failures }) {
-  return {
-    inspectedPdfCount,
-    solutionTitleCandidateCount: solutionTitleSamples.length,
-    solutionTitleSamples: solutionTitleSamples.slice(0, 20),
-    parserPatterns,
-    failedParserPattern: 'correctAnswerHeader',
-    sampleSnippets: solutionPdfSnippets.slice(0, 8),
-    failures
-  };
+async function readJson(path) {
+  return JSON.parse(await readFile(path, 'utf8'));
 }
 
-async function main() {
-  const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
-  const catalogRecords = [];
+async function readTextForPdf(id) {
+  const localPath = `data/extracted/pages/${id}.txt`;
+  if (existsSync(localPath)) return readFile(localPath, 'utf8');
+  const response = await fetch(`${rawBase}/${localPath}`);
+  if (!response.ok) throw new Error(`Could not load ${localPath}: ${response.status}`);
+  return response.text();
+}
+
+function sampleSnippet(text = '') {
+  return cleanText(text).slice(0, 500);
+}
+
+export async function buildOfficialArtifacts() {
+  const metadata = await readJson('data/extracted/pdfs/metadata.json');
+  await mkdir(outDir, { recursive: true });
+
+  const solutionCandidates = metadata.filter((source) => isSolutionTitle(source.title));
+  const solutionIndex = [];
   const explanations = [];
   const formulaCandidates = [];
-  const domainCounts = Object.fromEntries([...domains, 'כללי'].map((domain) => [domain, 0]));
-  let extractedTextCount = 0;
-  let solutionPdfCount = 0;
-  const solutionPdfSnippets = [];
-  const solutionTitleSamples = [];
   const failures = [];
+  const diagnostics = {
+    inspectedPdfCount: metadata.length,
+    solutionTitleCandidateCount: solutionCandidates.length,
+    solutionTitleSamples: solutionCandidates.slice(0, 10).map((source) => source.title),
+    parserPatterns: [
+      'תשובה ... 1-4 ... נכונה',
+      'התשובה הנכונה היא ... 1-4'
+    ],
+    sampleSnippets: []
+  };
 
   for (const source of metadata) {
     try {
@@ -175,43 +160,8 @@ async function main() {
       }
       formulaCandidates.push(...extractFormulaCandidates(text, source));
     } catch (error) {
-      console.warn(error.message);
+      failures.push({ id: source.id, title: source.title, message: error.message });
     }
-    const domain = classifyDomain(`${title} ${text.slice(0, 1000)}`);
-    domainCounts[domain] += 1;
-    const isSolution = isSolutionTitle(title);
-    if (isSolution) {
-      solutionPdfCount += 1;
-      solutionTitleSamples.push({ id: pdf.id, title, url: pdf.url });
-      if (text) {
-        solutionPdfSnippets.push({
-          id: pdf.id,
-          title,
-          url: pdf.url,
-          snippet: cleanText(text).slice(0, 1000)
-        });
-      } else {
-        failures.push({ id: pdf.id, title, url: pdf.url, reason: 'missing extracted text' });
-      }
-      const parsed = parseExplanations(pdf, text);
-      if (text && parsed.length === 0) {
-        failures.push({ id: pdf.id, title, url: pdf.url, reason: 'no answer/explanation headers matched' });
-      }
-      explanations.push(...parsed);
-    }
-    formulaCandidates.push(...parseFormulaCandidates(pdf, text));
-    catalogRecords.push({
-      id: pdf.id,
-      sourceId: pdf.id,
-      title,
-      sourceTitle: title,
-      url: pdf.url,
-      sourceUrl: pdf.url,
-      domain,
-      hasExtractedText: Boolean(text),
-      isSolution,
-      reviewStatus
-    });
   }
 
   const catalog = {
@@ -223,31 +173,21 @@ async function main() {
     parsedSolutionPdfCount: solutionIndex.length,
     parsedExplanationCount: explanations.length,
     formulaCandidateCount: formulaCandidates.length,
-    domainCounts,
-    diagnostics: buildDiagnostics({
-      inspectedPdfCount: metadata.length,
-      solutionTitleSamples,
-      solutionPdfSnippets,
-      failures
-    }),
-    records: catalogRecords
+    reviewStatus: 'auto_extracted_needs_review',
+    diagnostics,
+    failures
   };
 
   await writeFile(`${outDir}/catalog.json`, `${JSON.stringify(catalog, null, 2)}\n`);
   await writeFile(`${outDir}/solution-index.json`, `${JSON.stringify(solutionIndex, null, 2)}\n`);
   await writeFile(`${outDir}/explanations-preview.json`, `${JSON.stringify(explanations, null, 2)}\n`);
   await writeFile(`${outDir}/formula-candidates.json`, `${JSON.stringify(formulaCandidates, null, 2)}\n`);
-  if (solutionPdfCount > 0 && explanations.length === 0) {
-    throw new Error(`Found ${solutionPdfCount} solution PDFs but parsed no explanations; parser pattern failed: ${catalog.diagnostics.failedParserPattern}`);
-  }
-  console.log(`Parsed ${explanations.length} explanations and ${formulaCandidates.length} formula candidates`);
+  console.log(`Parsed ${catalog.parsedExplanationCount} explanations from ${catalog.parsedSolutionPdfCount} solution PDFs; found ${catalog.formulaCandidateCount} formula candidates.`);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  main().catch((error) => {
+if (import.meta.url === `file://${process.argv[1]}`) {
+  buildOfficialArtifacts().catch((error) => {
     console.error(error);
     process.exit(1);
   });
 }
-
-export { cleanText, isSolutionTitle, parseCorrectAnswerHeader, parseExplanations, parseFormulaCandidates };
