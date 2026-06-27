@@ -1,0 +1,19 @@
+{
+  "artifactBranch": "campus-il-extraction-artifacts",
+  "pdfCount": 109,
+  "extractedTextCount": 109,
+  "solutionPdfCount": 0,
+  "parsedExplanationCount": 0,
+  "formulaCandidateCount": 0,
+  "domainCounts": {
+    "אנגלית": 8,
+    "חשיבה כמותית": 33,
+    "חשיבה מילולית": 23,
+    "מטלת כתיבה": 3,
+    "כללי": 42
+  },
+  "records": [
+    { "id": "campus-pdf-001", "title": "ספר קורס חלק א", "domain": "כללי", "reviewStatus": "auto_extracted_needs_review" },
+    { "id": "campus-pdf-021", "title": "פתרונות סימולציה קמפוס 1", "domain": "כללי", "reviewStatus": "auto_extracted_needs_review" }
+  ]
+}
