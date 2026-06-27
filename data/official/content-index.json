@@ -1,4 +1,4 @@
-export const officialContentIndex = {
+{
   "generatedAt": "2026-06-26T13:43:39.603Z",
   "sourcePage": "https://courses.campus.gov.il/courses/course-v1%3AMSE%2BGOV_PsychometryHe%2B2018_1/c360bdbb470643c5aaa5e5aa96bc5c8e/",
   "pdfCount": 109,
@@ -3447,4 +3447,4 @@ export const officialContentIndex = {
       ]
     }
   ]
-};
+}
