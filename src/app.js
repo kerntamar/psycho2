@@ -5,10 +5,10 @@ import { isArtifactSolutionSource, splitArtifactSolutions } from './artifactPars
 const aiLabel = 'שאלה זו נוצרה על ידי AI ואינה שאלה רשמית ממבחני המרכז הארצי או Campus IL';
 const storeKey = 'psycho2-state-v1';
 const state = JSON.parse(localStorage.getItem(storeKey) || '{}');
-Object.assign(state, { selectedPdfId: state.selectedPdfId || sourceInventory[0].id, practiceIndex: state.practiceIndex || 0, officialIndex: state.officialIndex || 0, currentQuestion: state.currentQuestion || sampleQuestion, attempts: state.attempts || [], bookmarks: state.bookmarks || [], artifactExplanations: state.artifactExplanations || [], artifactStatus: state.artifactStatus || 'idle' });
+Object.assign(state, { selectedPdfId: state.selectedPdfId || sourceInventory[0].id, practiceIndex: state.practiceIndex || 0, officialIndex: state.officialIndex || 0, currentQuestion: state.currentQuestion || sampleQuestion, attempts: state.attempts || [], bookmarks: state.bookmarks || [], artifactExplanations: state.artifactExplanations || [], artifactStatus: state.artifactStatus || 'idle', artifactSourceCount: state.artifactSourceCount || 0 });
 if (state.currentQuestion.text?.includes('שאלת הדגמה')) { state.currentQuestion = sampleQuestion; save(); }
 
-function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
+function save() { const persisted = { ...state, artifactExplanations: [] }; localStorage.setItem(storeKey, JSON.stringify(persisted)); }
 function sourceBadge(type) { return type === 'official' ? 'שאלה רשמית ממקור Campus IL' : aiLabel; }
 function nextAiQuestion() { const q = aiPracticeBank[state.practiceIndex % aiPracticeBank.length]; state.practiceIndex += 1; state.currentQuestion = q; save(); render(); }
 function nextOfficialQuestion() { const q = officialQuestions[state.officialIndex % officialQuestions.length]; state.officialIndex += 1; state.currentQuestion = q; save(); render(); }
@@ -25,12 +25,14 @@ async function loadArtifactExplanations() {
   render();
   try {
     const metadata = await fetch(`${artifactBase}/data/extracted/pdfs/metadata.json`).then((response) => response.json());
-    const solutionSources = metadata.filter(isArtifactSolutionSource).slice(0, 6);
-    const batches = await Promise.all(solutionSources.map(async (source) => {
+    const solutionSources = metadata.filter(isArtifactSolutionSource);
+    const explanations = [];
+    for (const source of solutionSources) {
       const text = await fetch(`${artifactBase}/data/extracted/pages/${source.id}.txt`).then((response) => response.text());
-      return splitArtifactSolutions(text, source).slice(0, 80);
-    }));
-    state.artifactExplanations = batches.flat().slice(0, 300);
+      explanations.push(...splitArtifactSolutions(text, source));
+    }
+    state.artifactExplanations = explanations;
+    state.artifactSourceCount = solutionSources.length;
     state.artifactStatus = 'loaded';
   } catch (error) {
     state.artifactStatus = `error: ${error.message}`;
@@ -40,11 +42,11 @@ async function loadArtifactExplanations() {
 }
 
 function renderArtifactExplanations() {
-  if (state.artifactStatus === 'idle') return '<div class="card"><p>אפשר להשתמש בחילוץ הקיים שכבר פורסם לענף artifacts, בלי להריץ שוב Bulk ingest.</p><button id="loadArtifacts">טען הסברים מהחילוץ הקיים</button></div>';
+  if (state.artifactStatus === 'idle') return '<div class="card"><p>אפשר להשתמש בחילוץ הקיים שכבר פורסם לענף artifacts, בלי להריץ שוב Bulk ingest.</p><button id="loadArtifacts">טען הסברים מכל קובצי הפתרונות</button></div>'; 
   if (state.artifactStatus === 'loading') return '<div class="card"><p>טוען הסברים רשמיים מהחילוץ הקיים...</p></div>';
   if (state.artifactStatus.startsWith('error')) return `<div class="card"><p class="bad">טעינת ההסברים נכשלה: ${state.artifactStatus}</p><button id="loadArtifacts">נסה שוב</button></div>`;
-  const cards = state.artifactExplanations.slice(0, 24).map((item) => `<article class="card"><span class="tag">${item.reviewStatus}</span><h3>${item.sourceTitle} · שאלה ${item.questionNumber}</h3><p>תשובה נכונה: ${item.correctAnswer}</p><p>${item.explanation}</p><small>מקור: ${item.sourceUrl}</small></article>`).join('');
-  return `<div class="card"><p>${state.artifactExplanations.length} הסברים נטענו ישירות מענף ${artifactBranch}, בלי להריץ workflow נוסף.</p></div><div class="grid">${cards}</div>`;
+  const cards = state.artifactExplanations.slice(0, 60).map((item) => `<article class="card"><span class="tag">${item.reviewStatus}</span><h3>${item.sourceTitle} · שאלה ${item.questionNumber}</h3><p>תשובה נכונה: ${item.correctAnswer}</p><p>${item.explanation}</p><small>מקור: ${item.sourceUrl}</small></article>`).join('');
+  return `<div class="card"><p>${state.artifactExplanations.length} הסברים נטענו מכל ${state.artifactSourceCount} קובצי הפתרונות בענף ${artifactBranch}, בלי להריץ workflow נוסף. מוצגות כאן 60 רשומות ראשונות.</p></div><div class="grid">${cards}</div>`;
 }
 
 function renderSources() {

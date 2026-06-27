@@ -31,6 +31,8 @@ assert(app.includes('ספריית PDF רשמית'), 'app must expose the officia
 assert(app.includes('אינדקס תוכן מכל ה־PDFים'), 'app must expose the all-PDF content index');
 assert(app.includes('loadArtifactExplanations'), 'app must load existing artifact explanations without rerunning ingest');
 assert(app.includes('בלי להריץ שוב Bulk ingest'), 'app must explain that existing artifacts can be reused');
+assert(app.includes('טען הסברים מכל קובצי הפתרונות'), 'app must load all solution PDFs from existing artifacts at once');
+assert(!app.includes('slice(0, 6)'), 'artifact loader must not limit extraction to the first six solution PDFs');
 assert(app.includes('<iframe'), 'app must embed selected official PDFs for reading');
 assert(app.includes('חזרה על טעויות'), 'app must include review mode');
 assert(app.includes('localStorage'), 'app must persist user progress locally');
